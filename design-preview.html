@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mom's Recipes - Design Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* CSS Variables - Warm Kitchen Color Palette */
+    :root {
+      --cream: #FFF8E7;
+      --cream-light: #FFFBF0;
+      --cream-dark: #F5EDD6;
+      --terracotta: #D4745E;
+      --terracotta-light: #E89580;
+      --terracotta-dark: #B85D47;
+      --sage: #9CAF88;
+      --sage-light: #B5C6A3;
+      --sage-dark: #7D9168;
+      --espresso: #5C4033;
+      --chocolate: #3E2723;
+      --cocoa: #8B6F47;
+      --white: #FFFFFF;
+      --off-white: #FAF7F2;
+      --linen: #F0EBE3;
+      --text-primary: #3E2723;
+      --text-secondary: #5C4033;
+      --text-muted: #8B7355;
+      --text-light: #A89B8C;
+
+      --font-heading: 'Playfair Display', Georgia, serif;
+      --font-body: 'Inter', Helvetica, sans-serif;
+      --font-recipe: 'Merriweather', Georgia, serif;
+      --font-script: 'Caveat', cursive;
+
+      --shadow-md: 0 4px 6px -1px rgba(92, 64, 51, 0.08), 0 2px 4px -1px rgba(92, 64, 51, 0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(92, 64, 51, 0.1), 0 4px 6px -2px rgba(92, 64, 51, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(92, 64, 51, 0.12), 0 10px 10px -5px rgba(92, 64, 51, 0.04);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--cream-light);
+      color: var(--text-primary);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Header */
+    header {
+      background: var(--cream);
+      padding: 1.5rem 2rem;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: var(--font-heading);
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--espresso);
+    }
+
+    .logo .script {
+      font-family: var(--font-script);
+      color: var(--terracotta);
+    }
+
+    nav {
+      display: flex;
+      gap: 2rem;
+    }
+
+    nav a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    nav a:hover {
+      color: var(--terracotta);
+    }
+
+    /* Hero Section */
+    .hero {
+      background: var(--cream);
+      padding: 3rem 2rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      border-radius: 16px;
+    }
+
+    h1 {
+      font-family: var(--font-heading);
+      font-size: 3rem;
+      color: var(--espresso);
+      margin-bottom: 1rem;
+    }
+
+    .search-bar {
+      max-width: 600px;
+      margin: 2rem auto;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      border: 2px solid var(--linen);
+      border-radius: 12px;
+      font-size: 1rem;
+      font-family: var(--font-body);
+      background: var(--white);
+      transition: all 0.2s;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: var(--terracotta);
+      box-shadow: 0 0 0 3px rgba(212, 116, 94, 0.1);
+    }
+
+    /* Color Palette Display */
+    .palette-section {
+      background: var(--white);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 2rem;
+    }
+
+    .palette-section h2 {
+      font-family: var(--font-heading);
+      color: var(--espresso);
+      margin-bottom: 1.5rem;
+      font-size: 2rem;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .color-swatch {
+      text-align: center;
+    }
+
+    .color-box {
+      width: 100%;
+      height: 100px;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      box-shadow: var(--shadow-md);
+    }
+
+    .color-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .color-hex {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    /* Recipe Grid */
+    .recipe-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .recipe-card {
+      background: var(--white);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .recipe-card:hover {
+      box-shadow: var(--shadow-xl);
+      transform: translateY(-4px);
+    }
+
+    .recipe-image {
+      width: 100%;
+      height: 200px;
+      background: linear-gradient(135deg, var(--cream-dark), var(--linen));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+    }
+
+    .recipe-content {
+      padding: 1.5rem;
+    }
+
+    .recipe-title {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      color: var(--chocolate);
+      margin-bottom: 0.5rem;
+    }
+
+    .recipe-source {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .tag {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .tag-dessert { background: #F4C2C2; color: var(--chocolate); }
+    .tag-breakfast { background: #FFEAA7; color: var(--chocolate); }
+    .tag-main { background: #FFE5B4; color: var(--chocolate); }
+    .tag-baking { background: #E6C9A8; color: var(--chocolate); }
+
+    .recipe-meta {
+      font-size: 0.875rem;
+      color: var(--text-light);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-body);
+      font-size: 1rem;
+    }
+
+    .btn-primary {
+      background: var(--terracotta);
+      color: var(--white);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-primary:hover {
+      background: var(--terracotta-dark);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--sage);
+      color: var(--white);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-secondary:hover {
+      background: var(--sage-dark);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--terracotta);
+      border: 2px solid var(--terracotta);
+    }
+
+    .btn-outline:hover {
+      background: var(--terracotta);
+      color: var(--white);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    /* Typography Examples */
+    .typography-section {
+      background: var(--white);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 2rem;
+    }
+
+    .recipe-instructions {
+      font-family: var(--font-recipe);
+      line-height: 1.8;
+      color: var(--text-primary);
+      margin-top: 1rem;
+    }
+
+    .handwritten-note {
+      font-family: var(--font-script);
+      font-size: 1.5rem;
+      color: var(--terracotta);
+      margin-top: 1rem;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--espresso);
+      color: var(--cream-light);
+      padding: 2rem;
+      text-align: center;
+      margin-top: 4rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="header-content">
+      <div class="logo">
+        <span class="script">Mom's</span> Recipes
+      </div>
+      <nav>
+        <a href="#">Browse</a>
+        <a href="#">Add Recipe</a>
+        <a href="#">Settings</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Hero Section -->
+    <div class="hero">
+      <h1>370 Family Recipes</h1>
+      <p style="color: var(--text-muted); font-size: 1.125rem; margin-bottom: 1rem;">
+        Search through Mom's cherished recipe collection
+      </p>
+      <div class="search-bar">
+        <input type="text" class="search-input" placeholder='Try "chocolate" or "flour"...'>
+      </div>
+    </div>
+
+    <!-- Color Palette Display -->
+    <div class="palette-section">
+      <h2>Warm Kitchen Color Palette</h2>
+
+      <h3 style="font-family: var(--font-body); color: var(--text-secondary); margin: 1.5rem 0 1rem;">Primary Colors</h3>
+      <div class="color-grid">
+        <div class="color-swatch">
+          <div class="color-box" style="background: var(--cream);"></div>
+          <div class="color-name">Cream</div>
+          <div class="color-hex">#FFF8E7</div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: var(--terracotta);"></div>
+          <div class="color-name">Terracotta</div>
+          <div class="color-hex">#D4745E</div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: var(--sage);"></div>
+          <div class="color-name">Sage</div>
+          <div class="color-hex">#9CAF88</div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: var(--espresso);"></div>
+          <div class="color-name">Espresso</div>
+          <div class="color-hex">#5C4033</div>
+        </div>
+        <div class="color-swatch">
+          <div class="color-box" style="background: var(--chocolate);"></div>
+          <div class="color-name">Chocolate</div>
+          <div class="color-hex">#3E2723</div>
+        </div>
+      </div>
+
+      <h3 style="font-family: var(--font-body); color: var(--text-secondary); margin: 1.5rem 0 1rem;">Tag Colors</h3>
+      <div class="tags">
+        <span class="tag tag-dessert">dessert</span>
+        <span class="tag tag-breakfast">breakfast</span>
+        <span class="tag tag-main">main dish</span>
+        <span class="tag tag-baking">baking</span>
+        <span class="tag" style="background: #A8E6CF; color: var(--chocolate);">appetizer</span>
+        <span class="tag" style="background: #FFD3A5; color: var(--chocolate);">soup</span>
+      </div>
+
+      <h3 style="font-family: var(--font-body); color: var(--text-secondary); margin: 2rem 0 1rem;">Button Styles</h3>
+      <div class="button-group">
+        <button class="btn btn-primary">Add Recipe</button>
+        <button class="btn btn-secondary">Browse All</button>
+        <button class="btn btn-outline">Clear Filters</button>
+      </div>
+    </div>
+
+    <!-- Typography Examples -->
+    <div class="typography-section">
+      <h2>Typography Showcase</h2>
+
+      <h1 style="font-size: 2.25rem; margin-top: 1.5rem;">Recipe Title - Playfair Display</h1>
+      <p class="recipe-source">From Grandma's cookbook • Added November 2024</p>
+
+      <p style="margin-top: 1rem; font-family: var(--font-body);">
+        This is body text using Inter. It's clean, modern, and highly readable for general content and descriptions.
+      </p>
+
+      <div class="recipe-instructions">
+        <strong>Instructions (Merriweather):</strong><br>
+        1. Preheat oven to 350°F and grease a baking pan.<br>
+        2. Mix the dry ingredients in a large bowl.<br>
+        3. Combine wet ingredients separately, then fold together.
+      </div>
+
+      <div class="handwritten-note">
+        "Mom's special touch: add extra vanilla!" - Handwritten style (Caveat)
+      </div>
+    </div>
+
+    <!-- Recipe Cards -->
+    <div class="palette-section">
+      <h2>Recipe Card Examples</h2>
+
+      <div class="recipe-grid">
+        <div class="recipe-card">
+          <div class="recipe-image">🍪</div>
+          <div class="recipe-content">
+            <h3 class="recipe-title">Chocolate Chip Cookies</h3>
+            <p class="recipe-source">From: Grandma's cookbook</p>
+            <div class="tags">
+              <span class="tag tag-dessert">dessert</span>
+              <span class="tag tag-baking">baking</span>
+            </div>
+            <p class="recipe-meta">📅 Added Nov 2024</p>
+          </div>
+        </div>
+
+        <div class="recipe-card">
+          <div class="recipe-image">🥞</div>
+          <div class="recipe-content">
+            <h3 class="recipe-title">Banana Pancakes</h3>
+            <p class="recipe-source">From: Mom's handwritten notes</p>
+            <div class="tags">
+              <span class="tag tag-breakfast">breakfast</span>
+            </div>
+            <p class="recipe-meta">📅 Added Nov 2024</p>
+          </div>
+        </div>
+
+        <div class="recipe-card">
+          <div class="recipe-image">🍞</div>
+          <div class="recipe-content">
+            <h3 class="recipe-title">Homemade Bread</h3>
+            <p class="recipe-source">From: Family recipe book</p>
+            <div class="tags">
+              <span class="tag tag-baking">baking</span>
+            </div>
+            <p class="recipe-meta">📅 Added Nov 2024</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>Made with ❤️ for Mom's Recipe Collection</p>
+    <p style="font-size: 0.875rem; margin-top: 0.5rem; opacity: 0.8;">370 cherished family recipes</p>
+  </footer>
+</body>
+</html>
