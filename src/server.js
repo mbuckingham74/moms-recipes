@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const recipeRoutes = require('./routes/recipeRoutes');
+const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -36,16 +37,13 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Recipe API is running' });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
-
-// 404 handler
+// 404 handler (must come before error handler)
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
+
+// Centralized error handling middleware (must be last)
+app.use(errorHandler);
 
 // Only start server if not being required for tests
 if (require.main === module) {
