@@ -116,6 +116,8 @@ class MySQLDatabase {
       },
 
       async all(...params) {
+        console.log('SQL:', sql);
+        console.log('Params:', params);
         const [rows] = await pool.execute(sql, params);
         return rows;
       }
