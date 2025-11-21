@@ -1,11 +1,18 @@
 const RecipeModel = require('../models/recipeModel');
 
 // Validation helper
-const validateRecipeInput = (data) => {
+const validateRecipeInput = (data, isUpdate = false) => {
   const errors = [];
 
-  if (!data.title || typeof data.title !== 'string' || data.title.trim().length === 0) {
-    errors.push('Title is required and must be a non-empty string');
+  // Title validation (required for create, optional for update)
+  if (!isUpdate) {
+    if (!data.title || typeof data.title !== 'string' || data.title.trim().length === 0) {
+      errors.push('Title is required and must be a non-empty string');
+    }
+  } else if (data.title !== undefined) {
+    if (typeof data.title !== 'string' || data.title.trim().length === 0) {
+      errors.push('Title must be a non-empty string');
+    }
   }
 
   if (data.title && data.title.length > 500) {
@@ -148,11 +155,17 @@ class RecipeController {
         return res.status(404).json({ error: 'Recipe not found' });
       }
 
+      // Validate update data
+      const validationErrors = validateRecipeInput(req.body, true);
+      if (validationErrors.length > 0) {
+        return res.status(400).json({ errors: validationErrors });
+      }
+
       const recipe = RecipeModel.update(id, {
-        title: title !== undefined ? title : existingRecipe.title,
-        source: source !== undefined ? source : existingRecipe.source,
+        title: title !== undefined ? title.trim() : existingRecipe.title,
+        source: source !== undefined ? (source ? source.trim() : null) : existingRecipe.source,
         instructions: instructions !== undefined ? instructions : existingRecipe.instructions,
-        imagePath: imagePath !== undefined ? imagePath : existingRecipe.image_path,
+        imagePath: imagePath !== undefined ? imagePath : existingRecipe.imagePath,
         ingredients,
         tags
       });
