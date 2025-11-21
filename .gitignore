@@ -4,3 +4,4 @@ data/
 uploads/
 *.log
 .DS_Store
+coverage/

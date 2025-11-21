@@ -1,5 +1,29 @@
 const RecipeModel = require('../models/recipeModel');
 
+// Helper to normalize and dedupe tags
+const normalizeTags = (tags) => {
+  if (!Array.isArray(tags)) return tags;
+
+  // Trim, lowercase, and filter out empty strings
+  const normalized = tags
+    .map(tag => typeof tag === 'string' ? tag.trim().toLowerCase() : tag)
+    .filter(tag => tag.length > 0);
+
+  // Remove duplicates
+  return [...new Set(normalized)];
+};
+
+// Helper to normalize ingredients
+const normalizeIngredients = (ingredients) => {
+  if (!Array.isArray(ingredients)) return ingredients;
+
+  return ingredients.map(ingredient => ({
+    name: ingredient.name ? ingredient.name.trim() : ingredient.name,
+    quantity: ingredient.quantity ? ingredient.quantity.trim() : ingredient.quantity,
+    unit: ingredient.unit ? ingredient.unit.trim() : ingredient.unit
+  }));
+};
+
 // Validation helper
 const validateRecipeInput = (data, isUpdate = false) => {
   const errors = [];
@@ -19,20 +43,70 @@ const validateRecipeInput = (data, isUpdate = false) => {
     errors.push('Title must be less than 500 characters');
   }
 
-  if (data.ingredients && !Array.isArray(data.ingredients)) {
-    errors.push('Ingredients must be an array');
+  // Ingredients validation
+  if (data.ingredients !== undefined) {
+    if (!Array.isArray(data.ingredients)) {
+      errors.push('Ingredients must be an array');
+    } else {
+      if (data.ingredients.length > 100) {
+        errors.push('Maximum 100 ingredients allowed');
+      }
+
+      // Validate each ingredient
+      data.ingredients.forEach((ingredient, index) => {
+        if (typeof ingredient !== 'object' || ingredient === null || Array.isArray(ingredient)) {
+          errors.push(`Ingredient at index ${index} must be an object`);
+          return;
+        }
+
+        // name is required and must be a non-empty string
+        if (!ingredient.name || typeof ingredient.name !== 'string' || ingredient.name.trim().length === 0) {
+          errors.push(`Ingredient at index ${index} must have a non-empty 'name' string`);
+        } else if (ingredient.name.length > 200) {
+          errors.push(`Ingredient name at index ${index} must be less than 200 characters`);
+        }
+
+        // quantity is optional but must be a string if provided
+        if (ingredient.quantity !== undefined && ingredient.quantity !== null) {
+          if (typeof ingredient.quantity !== 'string') {
+            errors.push(`Ingredient quantity at index ${index} must be a string`);
+          } else if (ingredient.quantity.length > 50) {
+            errors.push(`Ingredient quantity at index ${index} must be less than 50 characters`);
+          }
+        }
+
+        // unit is optional but must be a string if provided
+        if (ingredient.unit !== undefined && ingredient.unit !== null) {
+          if (typeof ingredient.unit !== 'string') {
+            errors.push(`Ingredient unit at index ${index} must be a string`);
+          } else if (ingredient.unit.length > 50) {
+            errors.push(`Ingredient unit at index ${index} must be less than 50 characters`);
+          }
+        }
+      });
+    }
   }
 
-  if (data.tags && !Array.isArray(data.tags)) {
-    errors.push('Tags must be an array');
-  }
+  // Tags validation
+  if (data.tags !== undefined) {
+    if (!Array.isArray(data.tags)) {
+      errors.push('Tags must be an array');
+    } else {
+      if (data.tags.length > 50) {
+        errors.push('Maximum 50 tags allowed');
+      }
 
-  if (data.ingredients && data.ingredients.length > 100) {
-    errors.push('Maximum 100 ingredients allowed');
-  }
-
-  if (data.tags && data.tags.length > 50) {
-    errors.push('Maximum 50 tags allowed');
+      // Validate each tag
+      data.tags.forEach((tag, index) => {
+        if (typeof tag !== 'string') {
+          errors.push(`Tag at index ${index} must be a string`);
+        } else if (tag.trim().length === 0) {
+          errors.push(`Tag at index ${index} cannot be empty`);
+        } else if (tag.length > 100) {
+          errors.push(`Tag at index ${index} must be less than 100 characters`);
+        }
+      });
+    }
   }
 
   return errors;
@@ -54,8 +128,8 @@ class RecipeController {
         source: source ? source.trim() : null,
         instructions,
         imagePath,
-        ingredients: ingredients || [],
-        tags: tags || []
+        ingredients: normalizeIngredients(ingredients || []),
+        tags: normalizeTags(tags || [])
       });
 
       res.status(201).json({
@@ -166,8 +240,8 @@ class RecipeController {
         source: source !== undefined ? (source ? source.trim() : null) : existingRecipe.source,
         instructions: instructions !== undefined ? instructions : existingRecipe.instructions,
         imagePath: imagePath !== undefined ? imagePath : existingRecipe.imagePath,
-        ingredients,
-        tags
+        ingredients: ingredients !== undefined ? normalizeIngredients(ingredients) : undefined,
+        tags: tags !== undefined ? normalizeTags(tags) : undefined
       });
 
       res.json({
