@@ -2,13 +2,21 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-// Ensure data directory exists
-const dataDir = path.join(__dirname, '../../data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
+// Allow database path to be overridden via environment variable (for testing)
+const getDbPath = () => {
+  if (process.env.DB_PATH) {
+    return process.env.DB_PATH;
+  }
 
-const dbPath = path.join(dataDir, 'recipes.db');
+  // Default to data/recipes.db
+  const dataDir = path.join(__dirname, '../../data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+  return path.join(dataDir, 'recipes.db');
+};
+
+const dbPath = getDbPath();
 const db = new Database(dbPath);
 
 // Enable foreign keys
@@ -75,7 +83,22 @@ const initDatabase = () => {
   console.log('Database initialized successfully');
 };
 
+// Cleanup function for tests
+const clearDatabase = () => {
+  db.exec('DELETE FROM recipe_tags');
+  db.exec('DELETE FROM ingredients');
+  db.exec('DELETE FROM tags');
+  db.exec('DELETE FROM recipes');
+};
+
+const closeDatabase = () => {
+  db.close();
+};
+
 // Initialize on module load
 initDatabase();
 
 module.exports = db;
+module.exports.clearDatabase = clearDatabase;
+module.exports.closeDatabase = closeDatabase;
+module.exports.dbPath = dbPath;

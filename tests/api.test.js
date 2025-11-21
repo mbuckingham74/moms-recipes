@@ -8,21 +8,52 @@ const testDbPath = path.join(__dirname, '../data/test-recipes.db');
 // Set test environment variables before requiring the app
 process.env.NODE_ENV = 'test';
 process.env.PORT = 3002;
+process.env.DB_PATH = testDbPath;
 
-// Mock database path for tests
+// Require modules after setting environment variables
 const db = require('../src/config/database');
 const app = require('../src/server');
 
-describe('Recipe API Integration Tests', () => {
-  let testRecipeId;
+// Helper function to create a test recipe
+const createTestRecipe = async (overrides = {}) => {
+  const defaultRecipe = {
+    title: 'Test Chocolate Chip Cookies',
+    source: 'Test Cookbook',
+    instructions: '1. Mix ingredients\n2. Bake at 350°F',
+    imagePath: 'uploads/test-cookies.jpg',
+    ingredients: [
+      { name: 'flour', quantity: '2', unit: 'cups' },
+      { name: 'sugar', quantity: '1', unit: 'cup' },
+      { name: 'chocolate chips', quantity: '2', unit: 'cups' }
+    ],
+    tags: ['dessert', 'cookies', 'baking']
+  };
 
+  const response = await request(app)
+    .post('/api/recipes')
+    .send({ ...defaultRecipe, ...overrides });
+
+  return response.body.recipe;
+};
+
+describe('Recipe API Integration Tests', () => {
   // Clean up test database before and after tests
   beforeAll(() => {
     // Database is already initialized by requiring the modules
+    // Clear any existing data
+    db.clearDatabase();
+  });
+
+  afterEach(() => {
+    // Clear database between tests to ensure test isolation
+    db.clearDatabase();
   });
 
   afterAll(() => {
-    // Clean up test database
+    // Close database connection
+    db.closeDatabase();
+
+    // Clean up test database file
     if (fs.existsSync(testDbPath)) {
       fs.unlinkSync(testDbPath);
     }
@@ -67,8 +98,6 @@ describe('Recipe API Integration Tests', () => {
         expect(response.body.recipe.title).toBe('Test Chocolate Chip Cookies');
         expect(response.body.recipe.ingredients).toHaveLength(3);
         expect(response.body.recipe.tags).toHaveLength(3);
-
-        testRecipeId = response.body.recipe.id;
       });
 
       test('should fail without title', async () => {
@@ -148,6 +177,10 @@ describe('Recipe API Integration Tests', () => {
 
     describe('GET /api/recipes - List Recipes', () => {
       test('should return paginated list of recipes', async () => {
+        // Create some test recipes
+        await createTestRecipe();
+        await createTestRecipe({ title: 'Recipe 2' });
+
         const response = await request(app)
           .get('/api/recipes')
           .expect(200);
@@ -155,12 +188,18 @@ describe('Recipe API Integration Tests', () => {
         expect(response.body).toHaveProperty('recipes');
         expect(response.body).toHaveProperty('pagination');
         expect(Array.isArray(response.body.recipes)).toBe(true);
+        expect(response.body.recipes.length).toBeGreaterThanOrEqual(2);
         expect(response.body.pagination).toHaveProperty('limit');
         expect(response.body.pagination).toHaveProperty('offset');
         expect(response.body.pagination).toHaveProperty('total');
       });
 
       test('should respect pagination parameters', async () => {
+        // Create some test recipes
+        await createTestRecipe();
+        await createTestRecipe({ title: 'Recipe 2' });
+        await createTestRecipe({ title: 'Recipe 3' });
+
         const response = await request(app)
           .get('/api/recipes?limit=2&offset=0')
           .expect(200);
@@ -171,11 +210,13 @@ describe('Recipe API Integration Tests', () => {
 
     describe('GET /api/recipes/:id - Get Recipe by ID', () => {
       test('should return recipe with full details', async () => {
+        const recipe = await createTestRecipe();
+
         const response = await request(app)
-          .get(`/api/recipes/${testRecipeId}`)
+          .get(`/api/recipes/${recipe.id}`)
           .expect(200);
 
-        expect(response.body.recipe).toHaveProperty('id', testRecipeId);
+        expect(response.body.recipe).toHaveProperty('id', recipe.id);
         expect(response.body.recipe).toHaveProperty('title');
         expect(response.body.recipe).toHaveProperty('ingredients');
         expect(response.body.recipe).toHaveProperty('tags');
@@ -193,6 +234,26 @@ describe('Recipe API Integration Tests', () => {
     });
 
     describe('GET /api/recipes/search - Search Recipes', () => {
+      beforeEach(async () => {
+        // Create test recipes with different ingredients and tags
+        await createTestRecipe({
+          title: 'Chocolate Chip Cookies',
+          ingredients: [
+            { name: 'flour', quantity: '2', unit: 'cups' },
+            { name: 'sugar', quantity: '1', unit: 'cup' }
+          ],
+          tags: ['dessert', 'cookies']
+        });
+        await createTestRecipe({
+          title: 'Banana Bread',
+          ingredients: [
+            { name: 'flour', quantity: '3', unit: 'cups' },
+            { name: 'banana', quantity: '3', unit: 'whole' }
+          ],
+          tags: ['bread', 'breakfast']
+        });
+      });
+
       test('should search by title', async () => {
         const response = await request(app)
           .get('/api/recipes/search?title=Chocolate')
@@ -200,7 +261,7 @@ describe('Recipe API Integration Tests', () => {
 
         expect(response.body).toHaveProperty('count');
         expect(response.body).toHaveProperty('recipes');
-        expect(response.body.recipes.length).toBeGreaterThan(0);
+        expect(response.body.count).toBeGreaterThan(0);
         expect(response.body.recipes[0].title).toContain('Chocolate');
       });
 
@@ -209,15 +270,17 @@ describe('Recipe API Integration Tests', () => {
           .get('/api/recipes/search?ingredient=flour')
           .expect(200);
 
-        expect(response.body.count).toBeGreaterThan(0);
+        expect(response.body.count).toBeGreaterThanOrEqual(2);
       });
 
       test('should search by multiple ingredients (AND)', async () => {
         const response = await request(app)
-          .get('/api/recipes/search?ingredients=flour,sugar')
+          .get('/api/recipes/search?ingredients=flour,banana')
           .expect(200);
 
         expect(response.body).toHaveProperty('recipes');
+        expect(response.body.count).toBe(1);
+        expect(response.body.recipes[0].title).toBe('Banana Bread');
       });
 
       test('should search by tags', async () => {
@@ -239,8 +302,10 @@ describe('Recipe API Integration Tests', () => {
 
     describe('PUT /api/recipes/:id - Update Recipe', () => {
       test('should update recipe with valid data', async () => {
+        const recipe = await createTestRecipe();
+
         const response = await request(app)
-          .put(`/api/recipes/${testRecipeId}`)
+          .put(`/api/recipes/${recipe.id}`)
           .send({
             title: 'Updated Test Recipe',
             tags: ['updated', 'test']
@@ -253,8 +318,10 @@ describe('Recipe API Integration Tests', () => {
       });
 
       test('should normalize tags on update', async () => {
+        const recipe = await createTestRecipe();
+
         const response = await request(app)
-          .put(`/api/recipes/${testRecipeId}`)
+          .put(`/api/recipes/${recipe.id}`)
           .send({
             tags: ['UPDATED', 'updated', 'Test']
           })
@@ -273,8 +340,10 @@ describe('Recipe API Integration Tests', () => {
       });
 
       test('should fail with invalid ingredient data', async () => {
+        const recipe = await createTestRecipe();
+
         const response = await request(app)
-          .put(`/api/recipes/${testRecipeId}`)
+          .put(`/api/recipes/${recipe.id}`)
           .send({
             ingredients: [{ quantity: '1' }] // missing name
           })
@@ -290,26 +359,32 @@ describe('Recipe API Integration Tests', () => {
 
     describe('GET /api/tags - Get All Tags', () => {
       test('should return list of all unique tags', async () => {
+        await createTestRecipe({ tags: ['dessert', 'cookies'] });
+        await createTestRecipe({ title: 'Recipe 2', tags: ['bread', 'breakfast'] });
+
         const response = await request(app)
           .get('/api/tags')
           .expect(200);
 
         expect(response.body).toHaveProperty('tags');
         expect(Array.isArray(response.body.tags)).toBe(true);
+        expect(response.body.tags.length).toBeGreaterThanOrEqual(4);
       });
     });
 
     describe('DELETE /api/recipes/:id - Delete Recipe', () => {
       test('should delete recipe', async () => {
+        const recipe = await createTestRecipe();
+
         const response = await request(app)
-          .delete(`/api/recipes/${testRecipeId}`)
+          .delete(`/api/recipes/${recipe.id}`)
           .expect(200);
 
         expect(response.body.message).toBe('Recipe deleted successfully');
 
         // Verify recipe is deleted
         await request(app)
-          .get(`/api/recipes/${testRecipeId}`)
+          .get(`/api/recipes/${recipe.id}`)
           .expect(404);
       });
 
