@@ -1,6 +1,18 @@
-# Mom's Recipes Backend
+# Mom's Recipes
 
-A Node.js/Express backend API for organizing and searching through ~370 recipes with SQLite database.
+A full-stack recipe organization web application for managing and searching through ~370 family recipes.
+
+**📚 Documentation:**
+- [API Documentation](#api-endpoints) (this file)
+- [Frontend Design Guide](FRONTEND_DESIGN.md) - Complete design system with warm kitchen color palette
+- [Project Summary](PROJECT_SUMMARY.md) - Development history and architecture decisions
+- [Quick Start](QUICK_START.md) - Fast setup and resume guide
+
+## Current Status
+
+✅ **Backend API** - Complete and tested
+⬜ **Frontend** - Design ready, implementation pending
+⬜ **Recipe Import** - 0/370 recipes imported
 
 ## Features
 
