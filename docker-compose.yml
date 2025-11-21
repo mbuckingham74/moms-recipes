@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  moms-recipes-backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: moms-recipes-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: meteo-mysql-prod
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-root}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME:-moms_recipes}
+      FRONTEND_URL: ${FRONTEND_URL}
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - backend-data:/app/data
+    networks:
+      - npm_network
+      - meteo-internal
+    depends_on:
+      - meteo-mysql-prod
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  moms-recipes-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: moms-recipes-frontend
+    restart: unless-stopped
+    networks:
+      - npm_network
+    depends_on:
+      - moms-recipes-backend
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  npm_network:
+    external: true
+    name: npm_network
+  meteo-internal:
+    external: true
+    name: meteo-internal
+
+volumes:
+  backend-data:
+    driver: local
+
+# External reference to existing MySQL container
+# This compose file expects meteo-mysql-prod to already be running
+# The MySQL container should be accessible on the meteo-internal network

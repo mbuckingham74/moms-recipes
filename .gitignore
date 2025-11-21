@@ -1,5 +1,7 @@
 node_modules/
 .env
+.env.local
+.env.production
 backend/data/
 backend/uploads/
 *.log
@@ -8,3 +10,6 @@ backend/coverage/
 
 # Frontend build output
 frontend/dist/
+
+# Docker
+docker-compose.override.yml

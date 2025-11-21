@@ -14,16 +14,16 @@ const toCamelCase = (obj) => {
 
 class RecipeModel {
   // Create a new recipe with ingredients and tags
-  static create(recipeData) {
+  static async create(recipeData) {
     const { title, source, instructions, imagePath, ingredients, tags } = recipeData;
 
-    const insert = db.transaction(() => {
+    const insert = db.transaction(async () => {
       // Insert recipe
       const recipeStmt = db.prepare(`
         INSERT INTO recipes (title, source, instructions, image_path)
         VALUES (?, ?, ?, ?)
       `);
-      const result = recipeStmt.run(title, source, instructions, imagePath);
+      const result = await recipeStmt.run(title, source, instructions, imagePath);
       const recipeId = result.lastInsertRowid;
 
       // Insert ingredients
@@ -32,8 +32,9 @@ class RecipeModel {
           INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
           VALUES (?, ?, ?, ?, ?)
         `);
-        ingredients.forEach((ing, index) => {
-          ingredientStmt.run(
+        for (let index = 0; index < ingredients.length; index++) {
+          const ing = ingredients[index];
+          await ingredientStmt.run(
             recipeId,
             ing.name,
             ing.quantity || null,
@@ -46,30 +47,30 @@ class RecipeModel {
       // Insert tags
       if (tags && tags.length > 0) {
         const tagStmt = db.prepare(`
-          INSERT OR IGNORE INTO tags (name) VALUES (?)
+          INSERT IGNORE INTO tags (name) VALUES (?)
         `);
         const getTagStmt = db.prepare(`SELECT id FROM tags WHERE name = ?`);
         const recipeTagStmt = db.prepare(`
           INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)
         `);
 
-        tags.forEach(tagName => {
-          tagStmt.run(tagName);
-          const tag = getTagStmt.get(tagName);
-          recipeTagStmt.run(recipeId, tag.id);
+        for (const tagName of tags) {
+          await tagStmt.run(tagName);
+          const tag = await getTagStmt.get(tagName);
+          await recipeTagStmt.run(recipeId, tag.id);
         });
       }
 
       return recipeId;
     });
 
-    const recipeId = insert();
+    const recipeId = await insert();
     return this.getById(recipeId);
   }
 
   // Get recipe by ID with all related data
-  static getById(id) {
-    const recipe = db.prepare(`
+  static async getById(id) {
+    const recipe = await db.prepare(`
       SELECT
         r.*,
         GROUP_CONCAT(DISTINCT t.name) as tags
@@ -83,7 +84,7 @@ class RecipeModel {
     if (!recipe) return null;
 
     // Get ingredients
-    const ingredients = db.prepare(`
+    const ingredients = await db.prepare(`
       SELECT name, quantity, unit, position
       FROM ingredients
       WHERE recipe_id = ?
@@ -99,12 +100,12 @@ class RecipeModel {
   }
 
   // Get all recipes with optional pagination
-  static getAll(limit = 50, offset = 0) {
+  static async getAll(limit = 50, offset = 0) {
     // Cap limit to prevent abuse
     const cappedLimit = Math.min(Math.max(1, limit), 100);
     const cappedOffset = Math.max(0, offset);
 
-    const recipes = db.prepare(`
+    const recipes = await db.prepare(`
       SELECT
         r.id, r.title, r.source, r.date_added, r.image_path,
         GROUP_CONCAT(DISTINCT t.name) as tags
@@ -124,9 +125,9 @@ class RecipeModel {
   }
 
   // Search recipes by ingredient
-  static searchByIngredient(ingredientName) {
+  static async searchByIngredient(ingredientName) {
     const trimmed = ingredientName.trim();
-    const recipes = db.prepare(`
+    const recipes = await db.prepare(`
       SELECT DISTINCT
         r.id, r.title, r.source, r.date_added, r.image_path,
         GROUP_CONCAT(DISTINCT t.name) as tags
@@ -147,7 +148,7 @@ class RecipeModel {
   }
 
   // Search recipes by multiple ingredients (recipes containing ALL specified ingredients)
-  static searchByIngredients(ingredientNames) {
+  static async searchByIngredients(ingredientNames) {
     if (!ingredientNames || ingredientNames.length === 0) {
       return [];
     }
@@ -156,7 +157,7 @@ class RecipeModel {
     const normalized = ingredientNames.map(name => name.trim().toLowerCase());
     const placeholders = normalized.map(() => '?').join(',');
 
-    const recipes = db.prepare(`
+    const recipes = await db.prepare(`
       SELECT
         r.id, r.title, r.source, r.date_added, r.image_path,
         GROUP_CONCAT(DISTINCT t.name) as tags
@@ -182,7 +183,7 @@ class RecipeModel {
   }
 
   // Filter recipes by tags
-  static filterByTags(tagNames) {
+  static async filterByTags(tagNames) {
     if (!tagNames || tagNames.length === 0) {
       return [];
     }
@@ -190,7 +191,7 @@ class RecipeModel {
     const normalized = tagNames.map(name => name.trim().toLowerCase());
     const placeholders = normalized.map(() => '?').join(',');
 
-    const recipes = db.prepare(`
+    const recipes = await db.prepare(`
       SELECT DISTINCT
         r.id, r.title, r.source, r.date_added, r.image_path,
         GROUP_CONCAT(DISTINCT t2.name) as tags
@@ -212,9 +213,9 @@ class RecipeModel {
   }
 
   // Search recipes by title
-  static searchByTitle(title) {
+  static async searchByTitle(title) {
     const trimmed = title.trim();
-    const recipes = db.prepare(`
+    const recipes = await db.prepare(`
       SELECT
         r.id, r.title, r.source, r.date_added, r.image_path,
         GROUP_CONCAT(DISTINCT t.name) as tags
@@ -234,7 +235,7 @@ class RecipeModel {
   }
 
   // Combined search with multiple filters
-  static combinedSearch(filters) {
+  static async combinedSearch(filters) {
     const { title, ingredients, tags } = filters;
     const conditions = [];
     const params = [];
@@ -295,7 +296,7 @@ class RecipeModel {
 
     query += ' GROUP BY r.id ORDER BY r.date_added DESC';
 
-    const recipes = db.prepare(query).all(...params);
+    const recipes = await db.prepare(query).all(...params);
 
     return recipes.map(recipe => {
       const camelRecipe = toCamelCase(recipe);
@@ -305,29 +306,30 @@ class RecipeModel {
   }
 
   // Update recipe
-  static update(id, recipeData) {
+  static async update(id, recipeData) {
     const { title, source, instructions, imagePath, ingredients, tags } = recipeData;
 
-    const update = db.transaction(() => {
+    const update = db.transaction(async () => {
       // Update recipe
       const updateStmt = db.prepare(`
         UPDATE recipes
-        SET title = ?, source = ?, instructions = ?, image_path = ?, updated_at = strftime('%s', 'now')
+        SET title = ?, source = ?, instructions = ?, image_path = ?, updated_at = UNIX_TIMESTAMP()
         WHERE id = ?
       `);
-      updateStmt.run(title, source, instructions, imagePath, id);
+      await updateStmt.run(title, source, instructions, imagePath, id);
 
       // Delete and re-insert ingredients if provided
       if (ingredients !== undefined) {
-        db.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
+        db.prepare('DELETE FROM ingredients WHERE recipe_id = ?') = await db.prepare($1).run(id);
 
         if (ingredients.length > 0) {
           const ingredientStmt = db.prepare(`
             INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
             VALUES (?, ?, ?, ?, ?)
           `);
-          ingredients.forEach((ing, index) => {
-            ingredientStmt.run(
+          for (let index = 0; index < ingredients.length; index++) {
+          const ing = ingredients[index];
+            await ingredientStmt.run(
               id,
               ing.name,
               ing.quantity || null,
@@ -340,23 +342,23 @@ class RecipeModel {
 
       // Delete and re-insert tags if provided
       if (tags !== undefined) {
-        db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
+        db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?') = await db.prepare($1).run(id);
 
         if (tags.length > 0) {
-          const tagStmt = db.prepare('INSERT OR IGNORE INTO tags (name) VALUES (?)');
+          const tagStmt = db.prepare('INSERT IGNORE INTO tags (name) VALUES (?)');
           const getTagStmt = db.prepare('SELECT id FROM tags WHERE name = ?');
           const recipeTagStmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)');
 
-          tags.forEach(tagName => {
-            tagStmt.run(tagName);
-            const tag = getTagStmt.get(tagName);
-            recipeTagStmt.run(id, tag.id);
+          for (const tagName of tags) {
+            await tagStmt.run(tagName);
+            const tag = await getTagStmt.get(tagName);
+            await recipeTagStmt.run(id, tag.id);
           });
         }
       }
     });
 
-    update();
+    await update();
 
     // Clean up orphaned tags after update (in case tags were removed)
     this.cleanupOrphanedTags();
@@ -365,9 +367,9 @@ class RecipeModel {
   }
 
   // Delete recipe
-  static delete(id) {
+  static async delete(id) {
     const stmt = db.prepare('DELETE FROM recipes WHERE id = ?');
-    const result = stmt.run(id);
+    const result = await stmt.run(id);
 
     // Clean up orphaned tags after deletion
     if (result.changes > 0) {
@@ -378,7 +380,7 @@ class RecipeModel {
   }
 
   // Get all tags (only tags that are actually used by recipes)
-  static getAllTags() {
+  static async getAllTags() {
     return db.prepare(`
       SELECT DISTINCT t.name
       FROM tags t
@@ -388,7 +390,7 @@ class RecipeModel {
   }
 
   // Clean up orphaned tags (tags not associated with any recipe)
-  static cleanupOrphanedTags() {
+  static async cleanupOrphanedTags() {
     db.prepare(`
       DELETE FROM tags
       WHERE id NOT IN (SELECT DISTINCT tag_id FROM recipe_tags)
@@ -396,7 +398,7 @@ class RecipeModel {
   }
 
   // Get total count of recipes
-  static getCount() {
+  static async getCount() {
     const result = db.prepare('SELECT COUNT(*) as count FROM recipes').get();
     return result.count;
   }

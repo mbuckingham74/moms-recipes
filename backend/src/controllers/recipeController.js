@@ -152,7 +152,7 @@ class RecipeController {
       throw new ApiError(400, 'Validation failed', validationErrors);
     }
 
-    const recipe = RecipeModel.create({
+    const recipe = await RecipeModel.create({
       title: title.trim(),
       source: source ? source.trim() : null,
       instructions: instructions ? instructions.trim() : null,
@@ -176,8 +176,8 @@ class RecipeController {
     if (isNaN(limit) || limit < 1) limit = 50;
     if (isNaN(offset) || offset < 0) offset = 0;
 
-    const recipes = RecipeModel.getAll(limit, offset);
-    const total = RecipeModel.getCount();
+    const recipes = await RecipeModel.getAll(limit, offset);
+    const total = await RecipeModel.getCount();
 
     res.json({
       recipes,
@@ -192,7 +192,7 @@ class RecipeController {
   // Get recipe by ID
   static getRecipeById = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const recipe = RecipeModel.getById(id);
+    const recipe = await RecipeModel.getById(id);
 
     if (!recipe) {
       throw new ApiError(404, 'Recipe not found');
@@ -238,11 +238,11 @@ class RecipeController {
     const filterCount = Object.keys(filters).length;
 
     if (filterCount > 1 || (filters.ingredients && filters.ingredients.length > 1) || filters.tags) {
-      recipes = RecipeModel.combinedSearch(filters);
+      recipes = await RecipeModel.combinedSearch(filters);
     } else if (filters.title) {
-      recipes = RecipeModel.searchByTitle(filters.title);
+      recipes = await RecipeModel.searchByTitle(filters.title);
     } else if (filters.ingredients && filters.ingredients.length === 1) {
-      recipes = RecipeModel.searchByIngredient(filters.ingredients[0]);
+      recipes = await RecipeModel.searchByIngredient(filters.ingredients[0]);
     } else {
       recipes = [];
     }
@@ -258,7 +258,7 @@ class RecipeController {
     const { id } = req.params;
     const { title, source, instructions, imagePath, ingredients, tags } = req.body;
 
-    const existingRecipe = RecipeModel.getById(id);
+    const existingRecipe = await RecipeModel.getById(id);
     if (!existingRecipe) {
       throw new ApiError(404, 'Recipe not found');
     }
@@ -269,7 +269,7 @@ class RecipeController {
       throw new ApiError(400, 'Validation failed', validationErrors);
     }
 
-    const recipe = RecipeModel.update(id, {
+    const recipe = await RecipeModel.update(id, {
       title: title !== undefined ? title.trim() : existingRecipe.title,
       source: source !== undefined ? (source ? source.trim() : null) : existingRecipe.source,
       instructions: instructions !== undefined ? (instructions ? instructions.trim() : null) : existingRecipe.instructions,
@@ -287,7 +287,7 @@ class RecipeController {
   // Delete recipe
   static deleteRecipe = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const deleted = RecipeModel.delete(id);
+    const deleted = await RecipeModel.delete(id);
 
     if (!deleted) {
       throw new ApiError(404, 'Recipe not found');
@@ -298,7 +298,7 @@ class RecipeController {
 
   // Get all tags
   static getAllTags = asyncHandler(async (req, res) => {
-    const tags = RecipeModel.getAllTags();
+    const tags = await RecipeModel.getAllTags();
     res.json({ tags: tags.map(t => t.name) });
   });
 }
