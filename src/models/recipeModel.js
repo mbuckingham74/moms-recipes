@@ -233,6 +233,77 @@ class RecipeModel {
     });
   }
 
+  // Combined search with multiple filters
+  static combinedSearch(filters) {
+    const { title, ingredients, tags } = filters;
+    const conditions = [];
+    const params = [];
+
+    let query = `
+      SELECT DISTINCT
+        r.id, r.title, r.source, r.date_added, r.image_path,
+        GROUP_CONCAT(DISTINCT t2.name) as tags
+      FROM recipes r
+      LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
+      LEFT JOIN tags t2 ON rt.tag_id = t2.id
+    `;
+
+    // Add ingredient joins if needed
+    if (ingredients && ingredients.length > 0) {
+      ingredients.forEach((_, index) => {
+        query += `
+          INNER JOIN ingredients i${index} ON r.id = i${index}.recipe_id
+        `;
+      });
+    }
+
+    // Add tag joins if needed
+    if (tags && tags.length > 0) {
+      query += `
+        LEFT JOIN recipe_tags rt2 ON r.id = rt2.recipe_id
+        LEFT JOIN tags t ON rt2.tag_id = t.id
+      `;
+    }
+
+    query += ' WHERE 1=1 ';
+
+    // Title filter
+    if (title) {
+      conditions.push('LOWER(r.title) LIKE LOWER(?)');
+      params.push(`%${title.trim()}%`);
+    }
+
+    // Ingredient filters (AND logic with partial matching)
+    if (ingredients && ingredients.length > 0) {
+      ingredients.forEach((ingredient, index) => {
+        conditions.push(`LOWER(TRIM(i${index}.name)) LIKE LOWER(?)`);
+        params.push(`%${ingredient.trim()}%`);
+      });
+    }
+
+    // Tag filters (OR logic)
+    if (tags && tags.length > 0) {
+      const normalizedTags = tags.map(tag => tag.trim().toLowerCase());
+      const tagPlaceholders = normalizedTags.map(() => '?').join(',');
+      conditions.push(`LOWER(TRIM(t.name)) IN (${tagPlaceholders})`);
+      params.push(...normalizedTags);
+    }
+
+    if (conditions.length > 0) {
+      query += ' AND ' + conditions.join(' AND ');
+    }
+
+    query += ' GROUP BY r.id ORDER BY r.date_added DESC';
+
+    const recipes = db.prepare(query).all(...params);
+
+    return recipes.map(recipe => {
+      const camelRecipe = toCamelCase(recipe);
+      camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      return camelRecipe;
+    });
+  }
+
   // Update recipe
   static update(id, recipeData) {
     const { title, source, instructions, imagePath, ingredients, tags } = recipeData;
@@ -286,6 +357,10 @@ class RecipeModel {
     });
 
     update();
+
+    // Clean up orphaned tags after update (in case tags were removed)
+    this.cleanupOrphanedTags();
+
     return this.getById(id);
   }
 
@@ -293,12 +368,31 @@ class RecipeModel {
   static delete(id) {
     const stmt = db.prepare('DELETE FROM recipes WHERE id = ?');
     const result = stmt.run(id);
+
+    // Clean up orphaned tags after deletion
+    if (result.changes > 0) {
+      this.cleanupOrphanedTags();
+    }
+
     return result.changes > 0;
   }
 
-  // Get all tags
+  // Get all tags (only tags that are actually used by recipes)
   static getAllTags() {
-    return db.prepare('SELECT name FROM tags ORDER BY name').all();
+    return db.prepare(`
+      SELECT DISTINCT t.name
+      FROM tags t
+      INNER JOIN recipe_tags rt ON t.id = rt.tag_id
+      ORDER BY t.name
+    `).all();
+  }
+
+  // Clean up orphaned tags (tags not associated with any recipe)
+  static cleanupOrphanedTags() {
+    db.prepare(`
+      DELETE FROM tags
+      WHERE id NOT IN (SELECT DISTINCT tag_id FROM recipe_tags)
+    `).run();
   }
 
   // Get total count of recipes
