@@ -41,7 +41,7 @@ class RecipeModel {
             ing.unit || null,
             index
           );
-        });
+        }
       }
 
       // Insert tags
@@ -58,7 +58,7 @@ class RecipeModel {
           await tagStmt.run(tagName);
           const tag = await getTagStmt.get(tagName);
           await recipeTagStmt.run(recipeId, tag.id);
-        });
+        }
       }
 
       return recipeId;
@@ -320,7 +320,7 @@ class RecipeModel {
 
       // Delete and re-insert ingredients if provided
       if (ingredients !== undefined) {
-        db.prepare('DELETE FROM ingredients WHERE recipe_id = ?') = await db.prepare($1).run(id);
+        await db.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
 
         if (ingredients.length > 0) {
           const ingredientStmt = db.prepare(`
@@ -328,7 +328,7 @@ class RecipeModel {
             VALUES (?, ?, ?, ?, ?)
           `);
           for (let index = 0; index < ingredients.length; index++) {
-          const ing = ingredients[index];
+            const ing = ingredients[index];
             await ingredientStmt.run(
               id,
               ing.name,
@@ -336,13 +336,13 @@ class RecipeModel {
               ing.unit || null,
               index
             );
-          });
+          }
         }
       }
 
       // Delete and re-insert tags if provided
       if (tags !== undefined) {
-        db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?') = await db.prepare($1).run(id);
+        await db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
 
         if (tags.length > 0) {
           const tagStmt = db.prepare('INSERT IGNORE INTO tags (name) VALUES (?)');
@@ -353,7 +353,7 @@ class RecipeModel {
             await tagStmt.run(tagName);
             const tag = await getTagStmt.get(tagName);
             await recipeTagStmt.run(id, tag.id);
-          });
+          }
         }
       }
     });
@@ -361,7 +361,7 @@ class RecipeModel {
     await update();
 
     // Clean up orphaned tags after update (in case tags were removed)
-    this.cleanupOrphanedTags();
+    await this.cleanupOrphanedTags();
 
     return this.getById(id);
   }
@@ -373,7 +373,7 @@ class RecipeModel {
 
     // Clean up orphaned tags after deletion
     if (result.changes > 0) {
-      this.cleanupOrphanedTags();
+      await this.cleanupOrphanedTags();
     }
 
     return result.changes > 0;
@@ -381,7 +381,7 @@ class RecipeModel {
 
   // Get all tags (only tags that are actually used by recipes)
   static async getAllTags() {
-    return db.prepare(`
+    return await db.prepare(`
       SELECT DISTINCT t.name
       FROM tags t
       INNER JOIN recipe_tags rt ON t.id = rt.tag_id
@@ -391,7 +391,7 @@ class RecipeModel {
 
   // Clean up orphaned tags (tags not associated with any recipe)
   static async cleanupOrphanedTags() {
-    db.prepare(`
+    await db.prepare(`
       DELETE FROM tags
       WHERE id NOT IN (SELECT DISTINCT tag_id FROM recipe_tags)
     `).run();
@@ -399,7 +399,7 @@ class RecipeModel {
 
   // Get total count of recipes
   static async getCount() {
-    const result = db.prepare('SELECT COUNT(*) as count FROM recipes').get();
+    const result = await db.prepare('SELECT COUNT(*) as count FROM recipes').get();
     return result.count;
   }
 }
