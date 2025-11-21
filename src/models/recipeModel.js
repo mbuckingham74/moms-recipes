@@ -1,5 +1,17 @@
 const db = require('../config/database');
 
+// Helper to convert snake_case to camelCase
+const toCamelCase = (obj) => {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(toCamelCase);
+
+  return Object.keys(obj).reduce((acc, key) => {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    acc[camelKey] = obj[key];
+    return acc;
+  }, {});
+};
+
 class RecipeModel {
   // Create a new recipe with ingredients and tags
   static create(recipeData) {
@@ -58,7 +70,14 @@ class RecipeModel {
   // Get recipe by ID with all related data
   static getById(id) {
     const recipe = db.prepare(`
-      SELECT * FROM recipes WHERE id = ?
+      SELECT
+        r.*,
+        GROUP_CONCAT(DISTINCT t.name) as tags
+      FROM recipes r
+      LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
+      LEFT JOIN tags t ON rt.tag_id = t.id
+      WHERE r.id = ?
+      GROUP BY r.id
     `).get(id);
 
     if (!recipe) return null;
@@ -71,50 +90,60 @@ class RecipeModel {
       ORDER BY position
     `).all(id);
 
-    // Get tags
-    const tags = db.prepare(`
-      SELECT t.name
-      FROM tags t
-      JOIN recipe_tags rt ON t.id = rt.tag_id
-      WHERE rt.recipe_id = ?
-    `).all(id);
+    // Convert to camelCase and parse tags
+    const camelRecipe = toCamelCase(recipe);
+    camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+    camelRecipe.ingredients = ingredients.map(toCamelCase);
 
-    return {
-      ...recipe,
-      ingredients,
-      tags: tags.map(t => t.name)
-    };
+    return camelRecipe;
   }
 
   // Get all recipes with optional pagination
   static getAll(limit = 50, offset = 0) {
-    const recipes = db.prepare(`
-      SELECT id, title, source, date_added, image_path
-      FROM recipes
-      ORDER BY date_added DESC
-      LIMIT ? OFFSET ?
-    `).all(limit, offset);
+    // Cap limit to prevent abuse
+    const cappedLimit = Math.min(Math.max(1, limit), 100);
+    const cappedOffset = Math.max(0, offset);
 
-    return recipes.map(recipe => ({
-      ...recipe,
-      tags: this.getRecipeTags(recipe.id)
-    }));
+    const recipes = db.prepare(`
+      SELECT
+        r.id, r.title, r.source, r.date_added, r.image_path,
+        GROUP_CONCAT(DISTINCT t.name) as tags
+      FROM recipes r
+      LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
+      LEFT JOIN tags t ON rt.tag_id = t.id
+      GROUP BY r.id
+      ORDER BY r.date_added DESC
+      LIMIT ? OFFSET ?
+    `).all(cappedLimit, cappedOffset);
+
+    return recipes.map(recipe => {
+      const camelRecipe = toCamelCase(recipe);
+      camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      return camelRecipe;
+    });
   }
 
   // Search recipes by ingredient
   static searchByIngredient(ingredientName) {
+    const trimmed = ingredientName.trim();
     const recipes = db.prepare(`
-      SELECT DISTINCT r.id, r.title, r.source, r.date_added, r.image_path
+      SELECT DISTINCT
+        r.id, r.title, r.source, r.date_added, r.image_path,
+        GROUP_CONCAT(DISTINCT t.name) as tags
       FROM recipes r
       JOIN ingredients i ON r.id = i.recipe_id
-      WHERE i.name LIKE ?
+      LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
+      LEFT JOIN tags t ON rt.tag_id = t.id
+      WHERE LOWER(TRIM(i.name)) LIKE LOWER(?)
+      GROUP BY r.id
       ORDER BY r.date_added DESC
-    `).all(`%${ingredientName}%`);
+    `).all(`%${trimmed}%`);
 
-    return recipes.map(recipe => ({
-      ...recipe,
-      tags: this.getRecipeTags(recipe.id)
-    }));
+    return recipes.map(recipe => {
+      const camelRecipe = toCamelCase(recipe);
+      camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      return camelRecipe;
+    });
   }
 
   // Search recipes by multiple ingredients (recipes containing ALL specified ingredients)
@@ -123,24 +152,33 @@ class RecipeModel {
       return [];
     }
 
-    const placeholders = ingredientNames.map(() => '?').join(',');
+    // Trim and normalize ingredient names
+    const normalized = ingredientNames.map(name => name.trim().toLowerCase());
+    const placeholders = normalized.map(() => '?').join(',');
+
     const recipes = db.prepare(`
-      SELECT r.id, r.title, r.source, r.date_added, r.image_path
+      SELECT
+        r.id, r.title, r.source, r.date_added, r.image_path,
+        GROUP_CONCAT(DISTINCT t.name) as tags
       FROM recipes r
+      LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
+      LEFT JOIN tags t ON rt.tag_id = t.id
       WHERE r.id IN (
         SELECT recipe_id
         FROM ingredients
-        WHERE name IN (${placeholders})
+        WHERE LOWER(TRIM(name)) IN (${placeholders})
         GROUP BY recipe_id
-        HAVING COUNT(DISTINCT name) = ?
+        HAVING COUNT(DISTINCT LOWER(TRIM(name))) = ?
       )
+      GROUP BY r.id
       ORDER BY r.date_added DESC
-    `).all(...ingredientNames, ingredientNames.length);
+    `).all(...normalized, normalized.length);
 
-    return recipes.map(recipe => ({
-      ...recipe,
-      tags: this.getRecipeTags(recipe.id)
-    }));
+    return recipes.map(recipe => {
+      const camelRecipe = toCamelCase(recipe);
+      camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      return camelRecipe;
+    });
   }
 
   // Filter recipes by tags
@@ -149,35 +187,50 @@ class RecipeModel {
       return [];
     }
 
-    const placeholders = tagNames.map(() => '?').join(',');
+    const normalized = tagNames.map(name => name.trim().toLowerCase());
+    const placeholders = normalized.map(() => '?').join(',');
+
     const recipes = db.prepare(`
-      SELECT DISTINCT r.id, r.title, r.source, r.date_added, r.image_path
+      SELECT DISTINCT
+        r.id, r.title, r.source, r.date_added, r.image_path,
+        GROUP_CONCAT(DISTINCT t2.name) as tags
       FROM recipes r
       JOIN recipe_tags rt ON r.id = rt.recipe_id
       JOIN tags t ON rt.tag_id = t.id
-      WHERE t.name IN (${placeholders})
+      LEFT JOIN recipe_tags rt2 ON r.id = rt2.recipe_id
+      LEFT JOIN tags t2 ON rt2.tag_id = t2.id
+      WHERE LOWER(TRIM(t.name)) IN (${placeholders})
+      GROUP BY r.id
       ORDER BY r.date_added DESC
-    `).all(...tagNames);
+    `).all(...normalized);
 
-    return recipes.map(recipe => ({
-      ...recipe,
-      tags: this.getRecipeTags(recipe.id)
-    }));
+    return recipes.map(recipe => {
+      const camelRecipe = toCamelCase(recipe);
+      camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      return camelRecipe;
+    });
   }
 
   // Search recipes by title
   static searchByTitle(title) {
+    const trimmed = title.trim();
     const recipes = db.prepare(`
-      SELECT id, title, source, date_added, image_path
-      FROM recipes
-      WHERE title LIKE ?
-      ORDER BY date_added DESC
-    `).all(`%${title}%`);
+      SELECT
+        r.id, r.title, r.source, r.date_added, r.image_path,
+        GROUP_CONCAT(DISTINCT t.name) as tags
+      FROM recipes r
+      LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
+      LEFT JOIN tags t ON rt.tag_id = t.id
+      WHERE LOWER(r.title) LIKE LOWER(?)
+      GROUP BY r.id
+      ORDER BY r.date_added DESC
+    `).all(`%${trimmed}%`);
 
-    return recipes.map(recipe => ({
-      ...recipe,
-      tags: this.getRecipeTags(recipe.id)
-    }));
+    return recipes.map(recipe => {
+      const camelRecipe = toCamelCase(recipe);
+      camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      return camelRecipe;
+    });
   }
 
   // Update recipe
@@ -246,18 +299,6 @@ class RecipeModel {
   // Get all tags
   static getAllTags() {
     return db.prepare('SELECT name FROM tags ORDER BY name').all();
-  }
-
-  // Helper: Get tags for a recipe
-  static getRecipeTags(recipeId) {
-    const tags = db.prepare(`
-      SELECT t.name
-      FROM tags t
-      JOIN recipe_tags rt ON t.id = rt.tag_id
-      WHERE rt.recipe_id = ?
-    `).all(recipeId);
-
-    return tags.map(t => t.name);
   }
 
   // Get total count of recipes
