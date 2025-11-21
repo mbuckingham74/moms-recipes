@@ -119,7 +119,9 @@ class MySQLDatabase {
       },
 
       async all(...params) {
-        const [rows] = await pool.execute(cleanSql, params);
+        // Use query instead of execute for complex queries
+        // execute() has issues with GROUP BY and some SQL constructs
+        const [rows] = await pool.query(cleanSql, params);
         return rows;
       }
     };
