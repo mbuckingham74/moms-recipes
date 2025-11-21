@@ -5,6 +5,7 @@ A full-stack recipe organization web application for managing and searching thro
 **📚 Documentation:**
 - [API Documentation](#api-endpoints) (this file)
 - [Frontend Design Guide](FRONTEND_DESIGN.md) - Complete design system with warm kitchen color palette
+- [Deployment Guide](DEPLOYMENT.md) - Production deployment to moms-recipes.tachyonfuture.com
 - [Project Summary](PROJECT_SUMMARY.md) - Development history and architecture decisions
 - [Quick Start](QUICK_START.md) - Fast setup and resume guide
 
