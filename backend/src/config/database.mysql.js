@@ -101,9 +101,12 @@ class MySQLDatabase {
   prepare(sql) {
     const pool = getPool();
 
+    // Clean up SQL - remove extra whitespace and normalize
+    const cleanSql = sql.trim().replace(/\s+/g, ' ');
+
     return {
       async run(...params) {
-        const [result] = await pool.execute(sql, params);
+        const [result] = await pool.execute(cleanSql, params);
         return {
           lastInsertRowid: result.insertId,
           changes: result.affectedRows
@@ -111,14 +114,12 @@ class MySQLDatabase {
       },
 
       async get(...params) {
-        const [rows] = await pool.execute(sql, params);
+        const [rows] = await pool.execute(cleanSql, params);
         return rows[0] || null;
       },
 
       async all(...params) {
-        console.log('SQL:', sql);
-        console.log('Params:', params);
-        const [rows] = await pool.execute(sql, params);
+        const [rows] = await pool.execute(cleanSql, params);
         return rows;
       }
     };
