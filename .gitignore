@@ -5,3 +5,6 @@ uploads/
 *.log
 .DS_Store
 coverage/
+
+# Frontend build output
+frontend/dist/

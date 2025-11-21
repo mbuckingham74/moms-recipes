@@ -1,0 +1,67 @@
+.header {
+  background: var(--cream);
+  padding: 1.5rem 2rem;
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--espresso);
+  text-decoration: none;
+}
+
+.logo:hover {
+  color: var(--espresso);
+}
+
+.logo .script {
+  font-family: var(--font-script);
+  color: var(--terracotta);
+}
+
+.nav {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav a:hover {
+  color: var(--terracotta);
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .logo {
+    font-size: 1.5rem;
+  }
+
+  .nav {
+    gap: 1rem;
+  }
+
+  .nav a {
+    font-size: 0.875rem;
+  }
+}

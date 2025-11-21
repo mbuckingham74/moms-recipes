@@ -11,8 +11,8 @@ A full-stack recipe organization web application for managing and searching thro
 
 ## Current Status
 
-✅ **Backend API** - Complete and tested
-⬜ **Frontend** - Design ready, implementation pending
+✅ **Backend API** - Complete and tested (80% code coverage)
+✅ **Frontend** - React application complete with warm kitchen design
 ⬜ **Recipe Import** - 0/370 recipes imported
 
 ## Features
@@ -25,24 +25,45 @@ A full-stack recipe organization web application for managing and searching thro
 
 ## Tech Stack
 
-- **Backend**: Node.js + Express
+### Backend
+- **Runtime**: Node.js
+- **Framework**: Express 5.1.0
 - **Database**: SQLite with better-sqlite3
-- **Features**: CORS enabled, environment configuration
+- **Testing**: Jest + Supertest (80% coverage)
+- **Features**: CORS, validation, error handling
+
+### Frontend
+- **Framework**: React 19
+- **Build Tool**: Vite
+- **Routing**: React Router
+- **HTTP Client**: Axios
+- **Styling**: CSS3 with custom properties
 
 ## Project Structure
 
 ```
 moms-recipes/
-├── src/
+├── src/                          # Backend source code
 │   ├── config/
 │   │   └── database.js          # Database connection and schema
 │   ├── models/
 │   │   └── recipeModel.js       # Recipe data operations
 │   ├── controllers/
 │   │   └── recipeController.js  # Request handlers
+│   ├── middleware/
+│   │   └── errorHandler.js      # Centralized error handling
 │   ├── routes/
 │   │   └── recipeRoutes.js      # API routes
 │   └── server.js                # Express server setup
+├── frontend/                     # React application
+│   ├── src/
+│   │   ├── components/          # Reusable UI components
+│   │   ├── pages/               # Page components
+│   │   ├── services/            # API integration
+│   │   └── utils/               # Helper functions
+│   ├── public/
+│   └── index.html
+├── tests/                        # Backend integration tests
 ├── data/                         # SQLite database files
 ├── uploads/                      # Recipe image files
 ├── .env                          # Environment variables
@@ -77,20 +98,43 @@ moms-recipes/
 **recipe_tags** (junction table)
 - `recipe_id`, `tag_id` (composite PRIMARY KEY)
 
-## Installation
+## Quick Start
+
+### Backend Setup
 
 ```bash
-# Install dependencies
+# Install backend dependencies
 npm install
 
-# Start development server with auto-reload
-npm run dev
+# Run backend tests (optional)
+npm test
 
-# Start production server
-npm start
+# Start backend development server
+npm run dev
 ```
 
-The server will run on `http://localhost:3001` (or the port specified in `.env`).
+Backend runs on `http://localhost:3001`
+
+### Frontend Setup
+
+```bash
+# Install frontend dependencies
+cd frontend
+npm install
+
+# Start frontend development server
+npm run dev
+```
+
+Frontend runs on `http://localhost:5173`
+
+### Full Application
+
+1. Start backend: `npm run dev` (from root)
+2. Start frontend: `cd frontend && npm run dev`
+3. Open http://localhost:5173 in your browser
+
+See [frontend/README.md](frontend/README.md) for detailed frontend documentation.
 
 ## API Endpoints
 

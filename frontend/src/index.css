@@ -1,0 +1,232 @@
+/* CSS Variables - Warm Kitchen Color Palette */
+:root {
+  --cream: #FFF8E7;
+  --cream-light: #FFFBF0;
+  --cream-dark: #F5EDD6;
+  --terracotta: #D4745E;
+  --terracotta-light: #E89580;
+  --terracotta-dark: #B85D47;
+  --sage: #9CAF88;
+  --sage-light: #B5C6A3;
+  --sage-dark: #7D9168;
+  --espresso: #5C4033;
+  --chocolate: #3E2723;
+  --cocoa: #8B6F47;
+  --white: #FFFFFF;
+  --off-white: #FAF7F2;
+  --linen: #F0EBE3;
+  --text-primary: #3E2723;
+  --text-secondary: #5C4033;
+  --text-muted: #8B7355;
+  --text-light: #A89B8C;
+
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', Helvetica, sans-serif;
+  --font-recipe: 'Merriweather', Georgia, serif;
+  --font-script: 'Caveat', cursive;
+
+  --shadow-sm: 0 1px 2px 0 rgba(92, 64, 51, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(92, 64, 51, 0.08), 0 2px 4px -1px rgba(92, 64, 51, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(92, 64, 51, 0.1), 0 4px 6px -2px rgba(92, 64, 51, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(92, 64, 51, 0.12), 0 10px 10px -5px rgba(92, 64, 51, 0.04);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--cream-light);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--espresso);
+  font-weight: 700;
+}
+
+h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Links */
+a {
+  color: var(--terracotta);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+a:hover {
+  color: var(--terracotta-dark);
+}
+
+/* Buttons */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--terracotta);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--terracotta-dark);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: var(--sage);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--sage-dark);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--terracotta);
+  border: 2px solid var(--terracotta);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--terracotta);
+  color: var(--white);
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* Input Fields */
+input, textarea, select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--linen);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: var(--font-body);
+  background: var(--white);
+  transition: all 0.2s;
+  color: var(--text-primary);
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--terracotta);
+  box-shadow: 0 0 0 3px rgba(212, 116, 94, 0.1);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Tags */
+.tag {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.tag-dessert { background: #F4C2C2; color: var(--chocolate); }
+.tag-breakfast { background: #FFEAA7; color: var(--chocolate); }
+.tag-main { background: #FFE5B4; color: var(--chocolate); }
+.tag-baking { background: #E6C9A8; color: var(--chocolate); }
+.tag-appetizer { background: #A8E6CF; color: var(--chocolate); }
+.tag-soup { background: #FFD3A5; color: var(--chocolate); }
+.tag-default { background: var(--linen); color: var(--text-secondary); }
+
+/* Cards */
+.card {
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-xl);
+  transform: translateY(-4px);
+}
+
+/* Loading Spinner */
+.spinner {
+  border: 3px solid var(--linen);
+  border-top: 3px solid var(--terracotta);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+}
