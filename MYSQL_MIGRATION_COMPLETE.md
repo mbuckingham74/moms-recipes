@@ -353,14 +353,37 @@ See [DOCKER_DEPLOYMENT.md#troubleshooting](DOCKER_DEPLOYMENT.md#troubleshooting)
 ## Next Steps
 
 1. ✅ Code migration - **COMPLETE**
-2. 🚀 Deploy to server - Follow [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md)
-3. ✅ Configure NPM reverse proxy
-4. ✅ Test all functionality
-5. ✅ Set up monitoring
-6. ✅ Configure backups
+2. ✅ Deploy to server - **COMPLETE**
+3. ✅ Configure NPM reverse proxy - **COMPLETE**
+4. ✅ Test all functionality - **COMPLETE**
+5. 🔄 Set up monitoring - Recommended
+6. 🔄 Configure backups - Recommended
+
+---
+
+## Deployment Summary
+
+**Deployed URLs:**
+- Frontend: https://moms-recipes.tachyonfuture.com
+- Backend API: https://api.moms-recipes.tachyonfuture.com
+
+**Infrastructure:**
+- Frontend: Nginx serving React SPA
+- Backend: Node.js Express API
+- Database: MySQL 8 (shared meteo-mysql-prod container)
+- Proxy: Nginx Proxy Manager with Let's Encrypt SSL
+- Networks: npm_network + meteo-internal
+
+**Key Fixes Applied:**
+- MySQL adapter: Use `query()` instead of `execute()` for complex SQL with GROUP BY
+- MySQL LIMIT syntax: Changed from `LIMIT ? OFFSET ?` to `LIMIT ?, ?` (offset, count)
+- SQL whitespace normalization: Strip and normalize whitespace for MySQL prepared statements
+- Frontend build: Added `VITE_API_BASE_URL` build argument for production API URL
+- CORS configuration: Backend configured with production frontend URL
 
 ---
 
 **Migration completed:** November 21, 2025
+**Deployment completed:** November 21, 2025
 **By:** Claude Code
-**Status:** ✅ Ready for deployment
+**Status:** ✅ **LIVE IN PRODUCTION**

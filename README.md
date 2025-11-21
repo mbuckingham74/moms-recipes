@@ -13,6 +13,7 @@ A full-stack recipe organization web application for managing and searching thro
 
 ✅ **Backend API** - Complete and tested (80% code coverage)
 ✅ **Frontend** - React application complete with warm kitchen design
+✅ **Production Deployment** - Live at https://moms-recipes.tachyonfuture.com
 ⬜ **Recipe Import** - 0/370 recipes imported
 
 ## Features
@@ -26,11 +27,11 @@ A full-stack recipe organization web application for managing and searching thro
 ## Tech Stack
 
 ### Backend
-- **Runtime**: Node.js
+- **Runtime**: Node.js 20
 - **Framework**: Express 5.1.0
-- **Database**: SQLite with better-sqlite3
+- **Database**: MySQL 8 (production) / SQLite (development)
 - **Testing**: Jest + Supertest (80% coverage)
-- **Features**: CORS, validation, error handling
+- **Features**: CORS, validation, error handling, async/await
 
 ### Frontend
 - **Framework**: React 19
