@@ -2,10 +2,10 @@
   "name": "moms-recipes",
   "version": "1.0.0",
   "description": "Recipe organization backend for managing ~370 recipes",
-  "main": "src/server.js",
+  "main": "backend/src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "node backend/src/server.js",
+    "dev": "nodemon backend/src/server.js",
     "test": "jest --runInBand --verbose --coverage",
     "test:watch": "jest --runInBand --watch"
   },
@@ -15,7 +15,7 @@
       "/node_modules/"
     ],
     "testMatch": [
-      "**/tests/**/*.test.js"
+      "**/backend/tests/**/*.test.js"
     ]
   },
   "keywords": [],

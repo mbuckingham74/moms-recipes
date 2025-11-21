@@ -48,7 +48,7 @@ EOF
 
 # 4. Start with PM2 (process manager)
 npm install -g pm2
-pm2 start src/server.js --name moms-recipes
+pm2 start backend/src/server.js --name moms-recipes
 pm2 save
 pm2 startup  # Follow instructions to enable auto-start
 ```
@@ -111,7 +111,7 @@ COPY . .
 EXPOSE 3001
 
 # Start server
-CMD ["node", "src/server.js"]
+CMD ["node", "backend/src/server.js"]
 ```
 
 #### Docker Compose
@@ -130,8 +130,8 @@ services:
       - NODE_ENV=production
       - FRONTEND_URL=https://moms-recipes.tachyonfuture.com
     volumes:
-      - ./data:/app/data
-      - ./uploads:/app/uploads
+      - ./backend/data:/app/backend/data
+      - ./backend/uploads:/app/backend/uploads
 ```
 
 **Deploy:**
@@ -150,7 +150,7 @@ Most platforms auto-detect Node.js apps and use `npm start`.
 - `FRONTEND_URL` = `https://moms-recipes.tachyonfuture.com`
 - `PORT` = (usually auto-assigned, or set to `3001`)
 
-**Note:** Ensure persistent storage for `data/` directory (SQLite database).
+**Note:** Ensure persistent storage for `backend/data/` directory (SQLite database).
 
 ---
 
@@ -187,7 +187,7 @@ npm run build
 - Perfect for < 1000 recipes
 
 **Important:**
-- ✅ Backup `data/recipes.db` regularly
+- ✅ Backup `backend/data/recipes.db` regularly
 - ✅ Ensure persistent storage (not ephemeral containers)
 - ✅ For high traffic, consider read replicas or switch to PostgreSQL
 
@@ -195,12 +195,12 @@ npm run build
 
 ```bash
 # Automated daily backup
-0 2 * * * cp /app/data/recipes.db /backups/recipes-$(date +\%Y\%m\%d).db
+0 2 * * * cp /app/backend/data/recipes.db /backups/recipes-$(date +\%Y\%m\%d).db
 ```
 
 Or use `sqlite3` backup command:
 ```bash
-sqlite3 data/recipes.db ".backup backups/recipes.db"
+sqlite3 backend/data/recipes.db ".backup backups/recipes.db"
 ```
 
 ---
@@ -296,9 +296,9 @@ open https://moms-recipes.tachyonfuture.com
 - Inspect browser console for origin mismatch
 
 ### Database Issues
-- Ensure `data/` directory has write permissions
+- Ensure `backend/data/` directory has write permissions
 - Check disk space: `df -h`
-- Verify SQLite file isn't corrupted: `sqlite3 data/recipes.db "PRAGMA integrity_check;"`
+- Verify SQLite file isn't corrupted: `sqlite3 backend/data/recipes.db "PRAGMA integrity_check;"`
 
 ### Server Not Starting
 - Check logs: `pm2 logs` or `docker logs`
@@ -320,7 +320,7 @@ Consider PostgreSQL if:
 
 If needed, switch to PostgreSQL:
 1. Export SQLite data
-2. Update [src/config/database.js](src/config/database.js) to use `pg` driver
+2. Update [backend/src/config/database.js](backend/src/config/database.js) to use `pg` driver
 3. Minimal code changes (prepared statements are compatible)
 
 ---

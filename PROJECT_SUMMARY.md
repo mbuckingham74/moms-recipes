@@ -25,23 +25,26 @@ A Node.js/Express REST API with SQLite database for recipe storage and retrieval
 #### Project Structure
 ```
 moms-recipes/
-├── src/
-│   ├── config/
-│   │   └── database.js              # SQLite connection, schema initialization
-│   ├── models/
-│   │   └── recipeModel.js           # Database operations (CRUD, search)
-│   ├── controllers/
-│   │   └── recipeController.js      # HTTP request handlers
-│   ├── routes/
-│   │   └── recipeRoutes.js          # API endpoint definitions
-│   └── server.js                    # Express app configuration
-├── data/                             # SQLite database files (gitignored)
-│   └── recipes.db                   # Created automatically on first run
-├── uploads/                          # Recipe images (gitignored)
+├── backend/                          # Backend application
+│   ├── src/
+│   │   ├── config/
+│   │   │   └── database.js          # SQLite connection, schema initialization
+│   │   ├── models/
+│   │   │   └── recipeModel.js       # Database operations (CRUD, search)
+│   │   ├── controllers/
+│   │   │   └── recipeController.js  # HTTP request handlers
+│   │   ├── routes/
+│   │   │   └── recipeRoutes.js      # API endpoint definitions
+│   │   └── server.js                # Express app configuration
+│   ├── tests/                        # Integration tests
+│   ├── data/                         # SQLite database files (gitignored)
+│   │   └── recipes.db               # Created automatically on first run
+│   ├── uploads/                      # Recipe images (gitignored)
+│   └── example-add-recipe.js        # Script showing how to add recipes
+├── frontend/                         # React application
 ├── .env                              # Environment config (gitignored)
 ├── .gitignore
 ├── package.json
-├── example-add-recipe.js            # Script showing how to add recipes
 └── README.md                         # Full API documentation
 ```
 
@@ -160,7 +163,7 @@ POST /api/recipes
   "title": "Chocolate Chip Cookies",
   "source": "Grandma's cookbook",
   "instructions": "1. Preheat oven...\n2. Mix ingredients...",
-  "imagePath": "uploads/cookies.jpg",
+  "imagePath": "backend/uploads/cookies.jpg",
   "ingredients": [
     {
       "name": "flour",
@@ -189,7 +192,7 @@ GET /api/recipes/1
     "source": "Grandma's cookbook",
     "date_added": 1763747600,
     "instructions": "...",
-    "image_path": "uploads/cookies.jpg",
+    "image_path": "backend/uploads/cookies.jpg",
     "ingredients": [
       {
         "name": "flour",
@@ -214,7 +217,7 @@ GET /api/recipes/search?ingredient=flour
       "title": "Chocolate Chip Cookies",
       "source": "Grandma's cookbook",
       "date_added": 1763747600,
-      "image_path": "uploads/cookies.jpg",
+      "image_path": "backend/uploads/cookies.jpg",
       "tags": ["dessert", "cookies"]
     }
   ]
@@ -274,10 +277,12 @@ NODE_ENV=development
 ```
 node_modules/
 .env
-data/
-uploads/
+backend/data/
+backend/uploads/
 *.log
 .DS_Store
+backend/coverage/
+frontend/dist/
 ```
 
 **Important:** Database files and uploads are gitignored to keep repo clean. Only code is versioned.
@@ -315,7 +320,7 @@ npm start      # Direct node execution
 - Bulk import via API or direct database insertion
 
 #### 2. Image Storage
-- Organize scanned recipe images in `uploads/` directory
+- Organize scanned recipe images in `backend/uploads/` directory
 - Establish naming convention (e.g., `recipe-{id}.jpg`)
 - Update recipes with correct `imagePath` values
 
@@ -439,10 +444,10 @@ npm start      # Direct node execution
 |------|---------|
 | `README.md` | Full API documentation with examples |
 | `BRANCHING_STRATEGY.md` | Git workflow, branch naming, best practices |
-| `src/config/database.js` | Schema definition and initialization |
-| `src/models/recipeModel.js` | All database queries and operations |
-| `src/controllers/recipeController.js` | Request/response handling |
-| `example-add-recipe.js` | Template for bulk import scripts |
+| `backend/src/config/database.js` | Schema definition and initialization |
+| `backend/src/models/recipeModel.js` | All database queries and operations |
+| `backend/src/controllers/recipeController.js` | Request/response handling |
+| `backend/example-add-recipe.js` | Template for bulk import scripts |
 
 ---
 
@@ -450,13 +455,13 @@ npm start      # Direct node execution
 
 ### Add Recipe Programmatically
 ```javascript
-const RecipeModel = require('./src/models/recipeModel');
+const RecipeModel = require('./backend/src/models/recipeModel');
 
 const recipe = RecipeModel.create({
   title: "Recipe Name",
   source: "Source",
   instructions: "Step-by-step...",
-  imagePath: "uploads/image.jpg",
+  imagePath: "backend/uploads/image.jpg",
   ingredients: [
     { name: "flour", quantity: "2", unit: "cups" }
   ],
@@ -498,7 +503,7 @@ Change PORT in `.env` file to different value (e.g., 3002).
 ### Database Locked
 Stop all node processes accessing the database:
 ```bash
-pkill -f "node src/server.js"
+pkill -f "node backend/src/server.js"
 ```
 
 ### Missing Dependencies
@@ -507,7 +512,7 @@ npm install
 ```
 
 ### Database Reset
-Delete `data/recipes.db` and restart server (auto-recreates empty database).
+Delete `backend/data/recipes.db` and restart server (auto-recreates empty database).
 
 ---
 
@@ -545,13 +550,13 @@ Delete `data/recipes.db` and restart server (auto-recreates empty database).
 **License:** (To be determined)
 
 **What to Commit:**
-- All source code (`src/`, `*.js`)
+- All source code (`backend/src/`, `frontend/src/`, `*.js`)
 - Configuration (`package.json`, `.gitignore`)
 - Documentation (`README.md`, `PROJECT_SUMMARY.md`, `BRANCHING_STRATEGY.md`)
 
 **What NOT to Commit:**
-- Database files (`data/`)
-- Uploaded images (`uploads/`)
+- Database files (`backend/data/`)
+- Uploaded images (`backend/uploads/`)
 - Environment variables (`.env`)
 - Node modules (`node_modules/`)
 

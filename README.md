@@ -43,18 +43,22 @@ A full-stack recipe organization web application for managing and searching thro
 
 ```
 moms-recipes/
-├── src/                          # Backend source code
-│   ├── config/
-│   │   └── database.js          # Database connection and schema
-│   ├── models/
-│   │   └── recipeModel.js       # Recipe data operations
-│   ├── controllers/
-│   │   └── recipeController.js  # Request handlers
-│   ├── middleware/
-│   │   └── errorHandler.js      # Centralized error handling
-│   ├── routes/
-│   │   └── recipeRoutes.js      # API routes
-│   └── server.js                # Express server setup
+├── backend/                      # Backend application
+│   ├── src/                      # Backend source code
+│   │   ├── config/
+│   │   │   └── database.js      # Database connection and schema
+│   │   ├── models/
+│   │   │   └── recipeModel.js   # Recipe data operations
+│   │   ├── controllers/
+│   │   │   └── recipeController.js  # Request handlers
+│   │   ├── middleware/
+│   │   │   └── errorHandler.js  # Centralized error handling
+│   │   ├── routes/
+│   │   │   └── recipeRoutes.js  # API routes
+│   │   └── server.js            # Express server setup
+│   ├── tests/                    # Backend integration tests
+│   ├── data/                     # SQLite database files
+│   └── uploads/                  # Recipe image files
 ├── frontend/                     # React application
 │   ├── src/
 │   │   ├── components/          # Reusable UI components
@@ -63,9 +67,6 @@ moms-recipes/
 │   │   └── utils/               # Helper functions
 │   ├── public/
 │   └── index.html
-├── tests/                        # Backend integration tests
-├── data/                         # SQLite database files
-├── uploads/                      # Recipe image files
 ├── .env                          # Environment variables
 └── package.json
 ```
@@ -293,8 +294,8 @@ curl http://localhost:3001/api/recipes/search?title=bread
 
 ## Development Notes
 
-- SQLite database file is created automatically on first run in `data/recipes.db`
-- Uploaded images should be stored in `uploads/` directory
+- SQLite database file is created automatically on first run in `backend/data/recipes.db`
+- Uploaded images should be stored in `backend/uploads/` directory
 - All timestamps are stored as Unix epoch seconds
 - Database uses `better-sqlite3` for synchronous operations (faster and simpler)
 

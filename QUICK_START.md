@@ -19,9 +19,9 @@ Server starts at: http://localhost:3001
 
 - **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Complete development history and context
 - **[README.md](README.md)** - Full API documentation with examples
-- **[src/config/database.js](src/config/database.js)** - Database schema
-- **[src/models/recipeModel.js](src/models/recipeModel.js)** - All database queries
-- **[example-add-recipe.js](example-add-recipe.js)** - Recipe import template
+- **[backend/src/config/database.js](backend/src/config/database.js)** - Database schema
+- **[backend/src/models/recipeModel.js](backend/src/models/recipeModel.js)** - All database queries
+- **[backend/example-add-recipe.js](backend/example-add-recipe.js)** - Recipe import template
 
 ## Quick Test
 
