@@ -438,6 +438,7 @@ npm start      # Direct node execution
 | File | Purpose |
 |------|---------|
 | `README.md` | Full API documentation with examples |
+| `BRANCHING_STRATEGY.md` | Git workflow, branch naming, best practices |
 | `src/config/database.js` | Schema definition and initialization |
 | `src/models/recipeModel.js` | All database queries and operations |
 | `src/controllers/recipeController.js` | Request/response handling |
@@ -546,7 +547,7 @@ Delete `data/recipes.db` and restart server (auto-recreates empty database).
 **What to Commit:**
 - All source code (`src/`, `*.js`)
 - Configuration (`package.json`, `.gitignore`)
-- Documentation (`README.md`, `PROJECT_SUMMARY.md`)
+- Documentation (`README.md`, `PROJECT_SUMMARY.md`, `BRANCHING_STRATEGY.md`)
 
 **What NOT to Commit:**
 - Database files (`data/`)
