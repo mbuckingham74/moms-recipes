@@ -114,8 +114,8 @@ class RecipeModel {
       LEFT JOIN tags t ON rt.tag_id = t.id
       GROUP BY r.id
       ORDER BY r.date_added DESC
-      LIMIT ? OFFSET ?
-    `).all(cappedLimit, cappedOffset);
+      LIMIT ?, ?
+    `).all(cappedOffset, cappedLimit);
 
     return recipes.map(recipe => {
       const camelRecipe = toCamelCase(recipe);
