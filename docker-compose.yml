@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   moms-recipes-backend:
     build:
@@ -22,8 +20,6 @@ services:
     networks:
       - npm_network
       - meteo-internal
-    depends_on:
-      - meteo-mysql-prod
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"]
       interval: 30s
