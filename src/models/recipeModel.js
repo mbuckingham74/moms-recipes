@@ -273,11 +273,11 @@ class RecipeModel {
       params.push(`%${title.trim()}%`);
     }
 
-    // Ingredient filters (AND logic)
+    // Ingredient filters (AND logic with partial matching)
     if (ingredients && ingredients.length > 0) {
       ingredients.forEach((ingredient, index) => {
-        conditions.push(`LOWER(TRIM(i${index}.name)) = LOWER(?)`);
-        params.push(ingredient.trim());
+        conditions.push(`LOWER(TRIM(i${index}.name)) LIKE LOWER(?)`);
+        params.push(`%${ingredient.trim()}%`);
       });
     }
 
@@ -357,6 +357,10 @@ class RecipeModel {
     });
 
     update();
+
+    // Clean up orphaned tags after update (in case tags were removed)
+    this.cleanupOrphanedTags();
+
     return this.getById(id);
   }
 
