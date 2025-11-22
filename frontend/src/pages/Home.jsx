@@ -17,6 +17,8 @@ function Home() {
 
   // Track active search controller to abort on new search or unmount
   const searchControllerRef = useRef(null);
+  // Track last search term for retry functionality
+  const lastSearchTermRef = useRef('');
 
   const loadRecipes = useCallback(async (signal, offset = pagination.offset) => {
     try {
@@ -66,6 +68,7 @@ function Home() {
     if (!searchTerm) {
       // Clear search and reset to page 1
       searchControllerRef.current = null;
+      lastSearchTermRef.current = '';
       setSearchMode(false);
       setPagination((prev) => ({ ...prev, offset: 0 }));
       // loadRecipes will be triggered by the effect when searchMode changes
@@ -74,6 +77,7 @@ function Home() {
 
     const abortController = new AbortController();
     searchControllerRef.current = abortController;
+    lastSearchTermRef.current = searchTerm;
 
     try {
       setLoading(true);
@@ -128,6 +132,16 @@ function Home() {
     }
   };
 
+  const handleRetry = () => {
+    if (lastSearchTermRef.current) {
+      // Retry the search
+      handleSearch(lastSearchTermRef.current);
+    } else {
+      // Retry loading the recipe list
+      loadRecipes(new AbortController().signal);
+    }
+  };
+
   return (
     <div className="home">
       <div className="hero">
@@ -149,7 +163,7 @@ function Home() {
         {error && (
           <div className="error">
             <p>{error}</p>
-            <button onClick={() => loadRecipes(new AbortController().signal)} className="btn btn-primary">
+            <button onClick={handleRetry} className="btn btn-primary">
               Try Again
             </button>
           </div>

@@ -7,9 +7,7 @@ function SearchBar({ onSearch, placeholder = 'Try "chocolate" or "flour"...' }) 
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (searchTerm.trim()) {
-      onSearch(searchTerm.trim());
-    }
+    onSearch(searchTerm.trim());
   };
 
   const handleClear = () => {
@@ -26,6 +24,7 @@ function SearchBar({ onSearch, placeholder = 'Try "chocolate" or "flour"...' }) 
           placeholder={placeholder}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
+          aria-label="Search recipes by title or ingredient"
         />
         {searchTerm && (
           <button

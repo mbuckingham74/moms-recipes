@@ -41,12 +41,12 @@ function RecipeCard({ recipe }) {
 
 RecipeCard.propTypes = {
   recipe: PropTypes.shape({
-    id: PropTypes.number.isRequired,
+    id: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
     title: PropTypes.string.isRequired,
     source: PropTypes.string,
     imagePath: PropTypes.string,
     tags: PropTypes.arrayOf(PropTypes.string),
-    dateAdded: PropTypes.number,
+    dateAdded: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   }).isRequired,
 };
 

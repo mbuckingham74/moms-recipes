@@ -15,13 +15,30 @@ export const getTagClass = (tag) => {
 };
 
 /**
- * Format Unix timestamp to readable date
- * @param {number} timestamp - Unix timestamp in seconds
+ * Format timestamp to readable date
+ * Handles Unix seconds, milliseconds, and ISO strings
+ * @param {number|string} timestamp - Unix timestamp (seconds or ms) or ISO string
  * @param {boolean} short - Use short format (default: true)
  * @returns {string} Formatted date string
  */
 export const formatDate = (timestamp, short = true) => {
-  const date = new Date(timestamp * 1000);
+  let date;
+
+  if (typeof timestamp === 'string') {
+    // ISO string
+    date = new Date(timestamp);
+  } else if (typeof timestamp === 'number') {
+    // Assume milliseconds if > year 2000 in seconds (946684800)
+    // This handles both Unix seconds and milliseconds correctly
+    date = new Date(timestamp < 10000000000 ? timestamp * 1000 : timestamp);
+  } else {
+    return 'Invalid Date';
+  }
+
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
   if (short) {
     return date.toLocaleDateString('en-US', {
       month: 'short',

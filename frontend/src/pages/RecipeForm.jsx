@@ -288,7 +288,12 @@ function RecipeForm() {
                 type="text"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag();
+                  }
+                }}
                 placeholder="e.g., dessert, baking"
               />
               <button
