@@ -29,9 +29,8 @@ jobs:
             cd ~/moms-recipes
             git pull origin main
 
-            # Update .env if needed
-            if [ ! -f .env ]; then
-              cat > .env << 'EOF'
+            # Ensure .env exists with correct values
+            cat > .env << 'EOF'
           NODE_ENV=production
           DB_HOST=meteo-mysql-prod
           DB_PORT=3306
@@ -41,7 +40,6 @@ jobs:
           FRONTEND_URL=https://recipes.tachyonfuture.com
           PORT=3001
           EOF
-            fi
 
             # Run deployment script
             chmod +x deploy.sh
