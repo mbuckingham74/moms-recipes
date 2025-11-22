@@ -13,7 +13,7 @@
 A full-stack recipe organization web application for managing and searching through ~370 family recipes.
 
 **📚 Documentation:**
-- [API Documentation](#api-endpoints) (this file)
+- [API Documentation](#api-endpoints)
 - [Frontend Design Guide](docs/FRONTEND_DESIGN.md) - Complete design system with warm kitchen color palette
 - [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment to moms-recipes.tachyonfuture.com
 - [Docker Deployment](docs/DOCKER_DEPLOYMENT.md) - Docker setup and container orchestration
