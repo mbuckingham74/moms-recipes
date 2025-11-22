@@ -32,10 +32,10 @@ class RecipeModel {
     let recipeId;
 
     if (isMySQL) {
-      // MySQL: Use async transaction
-      const insert = db.transaction(async () => {
-        // Insert recipe
-        const recipeStmt = db.prepare(`
+      // MySQL: Use async transaction with connection-bound db
+      const insert = db.transaction(async (txDb) => {
+        // Insert recipe using transaction-bound connection
+        const recipeStmt = txDb.prepare(`
           INSERT INTO recipes (title, source, instructions, image_path)
           VALUES (?, ?, ?, ?)
         `);
@@ -44,7 +44,7 @@ class RecipeModel {
 
         // Insert ingredients
         if (ingredients && ingredients.length > 0) {
-          const ingredientStmt = db.prepare(`
+          const ingredientStmt = txDb.prepare(`
             INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
             VALUES (?, ?, ?, ?, ?)
           `);
@@ -62,9 +62,9 @@ class RecipeModel {
 
         // Insert tags
         if (tags && tags.length > 0) {
-          const tagStmt = db.prepare(`INSERT IGNORE INTO tags (name) VALUES (?)`);
-          const getTagStmt = db.prepare(`SELECT id FROM tags WHERE name = ?`);
-          const recipeTagStmt = db.prepare(`INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)`);
+          const tagStmt = txDb.prepare(`INSERT IGNORE INTO tags (name) VALUES (?)`);
+          const getTagStmt = txDb.prepare(`SELECT id FROM tags WHERE name = ?`);
+          const recipeTagStmt = txDb.prepare(`INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)`);
 
           for (const tagName of tags) {
             await tagStmt.run(tagName);
@@ -370,10 +370,10 @@ class RecipeModel {
     const { title, source, instructions, imagePath, ingredients, tags } = recipeData;
 
     if (isMySQL) {
-      // MySQL: Use async transaction
-      const update = db.transaction(async () => {
-        // Update recipe
-        const updateStmt = db.prepare(`
+      // MySQL: Use async transaction with connection-bound db
+      const update = db.transaction(async (txDb) => {
+        // Update recipe using transaction-bound connection
+        const updateStmt = txDb.prepare(`
           UPDATE recipes
           SET title = ?, source = ?, instructions = ?, image_path = ?, updated_at = UNIX_TIMESTAMP()
           WHERE id = ?
@@ -382,10 +382,10 @@ class RecipeModel {
 
         // Delete and re-insert ingredients if provided
         if (ingredients !== undefined) {
-          await db.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
+          await txDb.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
 
           if (ingredients.length > 0) {
-            const ingredientStmt = db.prepare(`
+            const ingredientStmt = txDb.prepare(`
               INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
               VALUES (?, ?, ?, ?, ?)
             `);
@@ -404,12 +404,12 @@ class RecipeModel {
 
         // Delete and re-insert tags if provided
         if (tags !== undefined) {
-          await db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
+          await txDb.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
 
           if (tags.length > 0) {
-            const tagStmt = db.prepare('INSERT IGNORE INTO tags (name) VALUES (?)');
-            const getTagStmt = db.prepare('SELECT id FROM tags WHERE name = ?');
-            const recipeTagStmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)');
+            const tagStmt = txDb.prepare('INSERT IGNORE INTO tags (name) VALUES (?)');
+            const getTagStmt = txDb.prepare('SELECT id FROM tags WHERE name = ?');
+            const recipeTagStmt = txDb.prepare('INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)');
 
             for (const tagName of tags) {
               await tagStmt.run(tagName);

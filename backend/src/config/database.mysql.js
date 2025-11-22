@@ -150,12 +150,38 @@ class MySQLDatabase {
   }
 
   // Transaction support
+  // Callback receives a connection-bound db interface for atomic operations
   transaction(callback) {
     return async () => {
       const connection = await getPool().getConnection();
       try {
         await connection.beginTransaction();
-        const result = await callback();
+
+        // Create connection-bound prepare function for atomic operations
+        const txDb = {
+          prepare: (sql) => {
+            const cleanSql = sql.trim().replace(/\s+/g, ' ');
+            return {
+              async run(...params) {
+                const [result] = await connection.execute(cleanSql, params);
+                return {
+                  lastInsertRowid: result.insertId,
+                  changes: result.affectedRows
+                };
+              },
+              async get(...params) {
+                const [rows] = await connection.execute(cleanSql, params);
+                return rows[0] || null;
+              },
+              async all(...params) {
+                const [rows] = await connection.query(cleanSql, params);
+                return rows;
+              }
+            };
+          }
+        };
+
+        const result = await callback(txDb);
         await connection.commit();
         return result;
       } catch (error) {
