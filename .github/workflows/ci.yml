@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    name: Test and Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Run backend tests
+        run: npm test
+        env:
+          NODE_ENV: test
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: https://api.moms-recipes.tachyonfuture.com/api
