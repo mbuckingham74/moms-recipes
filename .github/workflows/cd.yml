@@ -23,19 +23,21 @@ jobs:
           ssh-keyscan -H tachyonfuture.com >> ~/.ssh/known_hosts
 
       - name: Deploy to server
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          ssh michael@tachyonfuture.com << 'ENDSSH'
+          ssh michael@tachyonfuture.com << ENDSSH
             cd ~/moms-recipes || git clone https://github.com/mbuckingham74/moms-recipes.git ~/moms-recipes
             cd ~/moms-recipes
             git pull origin main
 
             # Ensure .env exists with correct values
-            cat > .env << 'EOF'
+            cat > .env << EOF
           NODE_ENV=production
           DB_HOST=meteo-mysql-prod
           DB_PORT=3306
           DB_USER=root
-          DB_PASSWORD=jag97Dorp
+          DB_PASSWORD=${DB_PASSWORD}
           DB_NAME=moms_recipes
           FRONTEND_URL=https://recipes.tachyonfuture.com
           PORT=3001
