@@ -59,20 +59,27 @@ ssh-copy-id -i ~/.ssh/github_actions_key.pub michael@tachyonfuture.com
 ssh -i ~/.ssh/github_actions_key michael@tachyonfuture.com "echo 'SSH works!'"
 ```
 
-### Step 2: Add GitHub Secret
+### Step 2: Add GitHub Secrets
 
 Go to: https://github.com/mbuckingham74/moms-recipes/settings/secrets/actions
 
-Add this secret:
+Add these secrets:
 
 | Secret Name | Value |
 |-------------|-------|
 | `SSH_PRIVATE_KEY` | Contents of `~/.ssh/github_actions_key` (entire file including BEGIN/END lines) |
+| `DB_PASSWORD` | Your MySQL root password |
 
-**To get the private key:**
+**To get the SSH private key:**
 ```bash
 cat ~/.ssh/github_actions_key
 # Copy the entire output to GitHub
+```
+
+**To get the MySQL password:**
+```bash
+ssh michael@tachyonfuture.com
+docker inspect meteo-mysql-prod | grep MYSQL_ROOT_PASSWORD
 ```
 
 ### Step 3: Test It!
