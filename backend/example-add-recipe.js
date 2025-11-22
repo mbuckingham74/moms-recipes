@@ -30,13 +30,15 @@ const exampleRecipe = {
   tags: ["bread", "breakfast", "dessert", "banana"]
 };
 
-try {
-  const recipe = RecipeModel.create(exampleRecipe);
-  console.log('Recipe added successfully!');
-  console.log('Recipe ID:', recipe.id);
-  console.log('Title:', recipe.title);
-  console.log('Ingredients:', recipe.ingredients.length);
-  console.log('Tags:', recipe.tags.join(', '));
-} catch (error) {
-  console.error('Error adding recipe:', error);
-}
+(async () => {
+  try {
+    const recipe = await RecipeModel.create(exampleRecipe);
+    console.log('Recipe added successfully!');
+    console.log('Recipe ID:', recipe.id);
+    console.log('Title:', recipe.title);
+    console.log('Ingredients:', recipe.ingredients.length);
+    console.log('Tags:', recipe.tags.join(', '));
+  } catch (error) {
+    console.error('Error adding recipe:', error);
+  }
+})();

@@ -28,9 +28,15 @@ const initDatabase = async () => {
   const connection = await getPool().getConnection();
 
   try {
-    // Create database if it doesn't exist (need to connect without database first)
-    await connection.query(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`);
-    await connection.query(`USE ${dbConfig.database}`);
+    // Validate database name to prevent SQL injection
+    const dbName = dbConfig.database;
+    if (!dbName || !/^[a-zA-Z0-9_]+$/.test(dbName)) {
+      throw new Error(`Invalid database name: ${dbName}`);
+    }
+
+    // Create database if it doesn't exist (using escapeId for safety)
+    await connection.query(`CREATE DATABASE IF NOT EXISTS ${connection.escapeId(dbName)}`);
+    await connection.query(`USE ${connection.escapeId(dbName)}`);
 
     // Recipes table
     await connection.query(`
@@ -185,10 +191,22 @@ const closeDatabase = async () => {
 // Create database instance
 const db = new MySQLDatabase();
 
-// Initialize on module load (async)
-initDatabase().catch(console.error);
+// Track initialization promise
+let initPromise = null;
+
+// Initialize database and return promise
+const ensureInitialized = () => {
+  if (!initPromise) {
+    initPromise = initDatabase();
+  }
+  return initPromise;
+};
+
+// Start initialization on module load
+ensureInitialized().catch(console.error);
 
 module.exports = db;
 module.exports.clearDatabase = clearDatabase;
 module.exports.closeDatabase = closeDatabase;
 module.exports.getPool = getPool;
+module.exports.ensureInitialized = ensureInitialized;

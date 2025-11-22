@@ -1,5 +1,8 @@
 const db = require('../config/database');
 
+// Detect if we're using MySQL (async) or SQLite (sync)
+const isMySQL = process.env.NODE_ENV === 'production' || process.env.USE_MYSQL === 'true';
+
 // Helper to convert snake_case to camelCase
 const toCamelCase = (obj) => {
   if (!obj || typeof obj !== 'object') return obj;
@@ -12,59 +15,116 @@ const toCamelCase = (obj) => {
   }, {});
 };
 
+// Helper to handle current timestamp based on database type
+const getCurrentTimestamp = () => {
+  if (isMySQL) {
+    return 'UNIX_TIMESTAMP()';
+  } else {
+    return "strftime('%s', 'now')";
+  }
+};
+
 class RecipeModel {
   // Create a new recipe with ingredients and tags
   static async create(recipeData) {
     const { title, source, instructions, imagePath, ingredients, tags } = recipeData;
 
-    const insert = db.transaction(async () => {
-      // Insert recipe
-      const recipeStmt = db.prepare(`
-        INSERT INTO recipes (title, source, instructions, image_path)
-        VALUES (?, ?, ?, ?)
-      `);
-      const result = await recipeStmt.run(title, source, instructions, imagePath);
-      const recipeId = result.lastInsertRowid;
+    let recipeId;
 
-      // Insert ingredients
-      if (ingredients && ingredients.length > 0) {
-        const ingredientStmt = db.prepare(`
-          INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
-          VALUES (?, ?, ?, ?, ?)
+    if (isMySQL) {
+      // MySQL: Use async transaction
+      const insert = db.transaction(async () => {
+        // Insert recipe
+        const recipeStmt = db.prepare(`
+          INSERT INTO recipes (title, source, instructions, image_path)
+          VALUES (?, ?, ?, ?)
         `);
-        for (let index = 0; index < ingredients.length; index++) {
-          const ing = ingredients[index];
-          await ingredientStmt.run(
-            recipeId,
-            ing.name,
-            ing.quantity || null,
-            ing.unit || null,
-            index
-          );
+        const result = await recipeStmt.run(title, source, instructions, imagePath);
+        const recipeId = result.lastInsertRowid;
+
+        // Insert ingredients
+        if (ingredients && ingredients.length > 0) {
+          const ingredientStmt = db.prepare(`
+            INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
+            VALUES (?, ?, ?, ?, ?)
+          `);
+          for (let index = 0; index < ingredients.length; index++) {
+            const ing = ingredients[index];
+            await ingredientStmt.run(
+              recipeId,
+              ing.name,
+              ing.quantity || null,
+              ing.unit || null,
+              index
+            );
+          }
         }
-      }
 
-      // Insert tags
-      if (tags && tags.length > 0) {
-        const tagStmt = db.prepare(`
-          INSERT IGNORE INTO tags (name) VALUES (?)
-        `);
-        const getTagStmt = db.prepare(`SELECT id FROM tags WHERE name = ?`);
-        const recipeTagStmt = db.prepare(`
-          INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)
-        `);
+        // Insert tags
+        if (tags && tags.length > 0) {
+          const tagStmt = db.prepare(`INSERT IGNORE INTO tags (name) VALUES (?)`);
+          const getTagStmt = db.prepare(`SELECT id FROM tags WHERE name = ?`);
+          const recipeTagStmt = db.prepare(`INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)`);
 
-        for (const tagName of tags) {
-          await tagStmt.run(tagName);
-          const tag = await getTagStmt.get(tagName);
-          await recipeTagStmt.run(recipeId, tag.id);
+          for (const tagName of tags) {
+            await tagStmt.run(tagName);
+            const tag = await getTagStmt.get(tagName);
+            await recipeTagStmt.run(recipeId, tag.id);
+          }
         }
-      }
 
-      return recipeId;
-    });
+        return recipeId;
+      });
 
-    const recipeId = await insert();
+      recipeId = await insert();
+    } else {
+      // SQLite: Use synchronous transaction (no async/await inside!)
+      const insert = db.transaction(() => {
+        // Insert recipe
+        const recipeStmt = db.prepare(`
+          INSERT INTO recipes (title, source, instructions, image_path)
+          VALUES (?, ?, ?, ?)
+        `);
+        const result = recipeStmt.run(title, source, instructions, imagePath);
+        const newRecipeId = result.lastInsertRowid;
+
+        // Insert ingredients
+        if (ingredients && ingredients.length > 0) {
+          const ingredientStmt = db.prepare(`
+            INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
+            VALUES (?, ?, ?, ?, ?)
+          `);
+          for (let index = 0; index < ingredients.length; index++) {
+            const ing = ingredients[index];
+            ingredientStmt.run(
+              newRecipeId,
+              ing.name,
+              ing.quantity || null,
+              ing.unit || null,
+              index
+            );
+          }
+        }
+
+        // Insert tags (SQLite uses INSERT OR IGNORE)
+        if (tags && tags.length > 0) {
+          const tagStmt = db.prepare(`INSERT OR IGNORE INTO tags (name) VALUES (?)`);
+          const getTagStmt = db.prepare(`SELECT id FROM tags WHERE name = ?`);
+          const recipeTagStmt = db.prepare(`INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)`);
+
+          for (const tagName of tags) {
+            tagStmt.run(tagName);
+            const tag = getTagStmt.get(tagName);
+            recipeTagStmt.run(newRecipeId, tag.id);
+          }
+        }
+
+        return newRecipeId;
+      });
+
+      recipeId = insert();
+    }
+
     return this.getById(recipeId);
   }
 
@@ -309,56 +369,111 @@ class RecipeModel {
   static async update(id, recipeData) {
     const { title, source, instructions, imagePath, ingredients, tags } = recipeData;
 
-    const update = db.transaction(async () => {
-      // Update recipe
-      const updateStmt = db.prepare(`
-        UPDATE recipes
-        SET title = ?, source = ?, instructions = ?, image_path = ?, updated_at = UNIX_TIMESTAMP()
-        WHERE id = ?
-      `);
-      await updateStmt.run(title, source, instructions, imagePath, id);
+    if (isMySQL) {
+      // MySQL: Use async transaction
+      const update = db.transaction(async () => {
+        // Update recipe
+        const updateStmt = db.prepare(`
+          UPDATE recipes
+          SET title = ?, source = ?, instructions = ?, image_path = ?, updated_at = UNIX_TIMESTAMP()
+          WHERE id = ?
+        `);
+        await updateStmt.run(title, source, instructions, imagePath, id);
 
-      // Delete and re-insert ingredients if provided
-      if (ingredients !== undefined) {
-        await db.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
+        // Delete and re-insert ingredients if provided
+        if (ingredients !== undefined) {
+          await db.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
 
-        if (ingredients.length > 0) {
-          const ingredientStmt = db.prepare(`
-            INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
-            VALUES (?, ?, ?, ?, ?)
-          `);
-          for (let index = 0; index < ingredients.length; index++) {
-            const ing = ingredients[index];
-            await ingredientStmt.run(
-              id,
-              ing.name,
-              ing.quantity || null,
-              ing.unit || null,
-              index
-            );
+          if (ingredients.length > 0) {
+            const ingredientStmt = db.prepare(`
+              INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
+              VALUES (?, ?, ?, ?, ?)
+            `);
+            for (let index = 0; index < ingredients.length; index++) {
+              const ing = ingredients[index];
+              await ingredientStmt.run(
+                id,
+                ing.name,
+                ing.quantity || null,
+                ing.unit || null,
+                index
+              );
+            }
           }
         }
-      }
 
-      // Delete and re-insert tags if provided
-      if (tags !== undefined) {
-        await db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
+        // Delete and re-insert tags if provided
+        if (tags !== undefined) {
+          await db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
 
-        if (tags.length > 0) {
-          const tagStmt = db.prepare('INSERT IGNORE INTO tags (name) VALUES (?)');
-          const getTagStmt = db.prepare('SELECT id FROM tags WHERE name = ?');
-          const recipeTagStmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)');
+          if (tags.length > 0) {
+            const tagStmt = db.prepare('INSERT IGNORE INTO tags (name) VALUES (?)');
+            const getTagStmt = db.prepare('SELECT id FROM tags WHERE name = ?');
+            const recipeTagStmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)');
 
-          for (const tagName of tags) {
-            await tagStmt.run(tagName);
-            const tag = await getTagStmt.get(tagName);
-            await recipeTagStmt.run(id, tag.id);
+            for (const tagName of tags) {
+              await tagStmt.run(tagName);
+              const tag = await getTagStmt.get(tagName);
+              await recipeTagStmt.run(id, tag.id);
+            }
           }
         }
-      }
-    });
+      });
 
-    await update();
+      await update();
+    } else {
+      // SQLite: Use synchronous transaction (no async/await inside!)
+      const update = db.transaction(() => {
+        // Update recipe using SQLite timestamp function
+        const updateStmt = db.prepare(`
+          UPDATE recipes
+          SET title = ?, source = ?, instructions = ?, image_path = ?, updated_at = strftime('%s', 'now')
+          WHERE id = ?
+        `);
+        updateStmt.run(title, source, instructions, imagePath, id);
+
+        // Delete and re-insert ingredients if provided
+        if (ingredients !== undefined) {
+          db.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
+
+          if (ingredients.length > 0) {
+            const ingredientStmt = db.prepare(`
+              INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
+              VALUES (?, ?, ?, ?, ?)
+            `);
+            for (let index = 0; index < ingredients.length; index++) {
+              const ing = ingredients[index];
+              ingredientStmt.run(
+                id,
+                ing.name,
+                ing.quantity || null,
+                ing.unit || null,
+                index
+              );
+            }
+          }
+        }
+
+        // Delete and re-insert tags if provided
+        if (tags !== undefined) {
+          db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
+
+          if (tags.length > 0) {
+            const tagStmt = db.prepare('INSERT OR IGNORE INTO tags (name) VALUES (?)');
+            const getTagStmt = db.prepare('SELECT id FROM tags WHERE name = ?');
+            const recipeTagStmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)');
+
+            for (const tagName of tags) {
+              tagStmt.run(tagName);
+              const tag = getTagStmt.get(tagName);
+              recipeTagStmt.run(id, tag.id);
+            }
+          }
+        }
+      });
+
+      update();
+    }
 
     // Clean up orphaned tags after update (in case tags were removed)
     await this.cleanupOrphanedTags();

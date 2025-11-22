@@ -47,10 +47,21 @@ app.use(errorHandler);
 
 // Only start server if not being required for tests
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/health`);
-  });
+  // Wait for database initialization before starting server
+  const db = require('./config/database');
+  const initPromise = db.ensureInitialized ? db.ensureInitialized() : Promise.resolve();
+
+  initPromise
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+        console.log(`Health check: http://localhost:${PORT}/health`);
+      });
+    })
+    .catch((error) => {
+      console.error('Failed to initialize database:', error);
+      process.exit(1);
+    });
 }
 
 module.exports = app;
