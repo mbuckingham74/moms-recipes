@@ -14,10 +14,13 @@ A full-stack recipe organization web application for managing and searching thro
 
 **📚 Documentation:**
 - [API Documentation](#api-endpoints) (this file)
-- [Frontend Design Guide](FRONTEND_DESIGN.md) - Complete design system with warm kitchen color palette
-- [Deployment Guide](DEPLOYMENT.md) - Production deployment to moms-recipes.tachyonfuture.com
-- [Project Summary](PROJECT_SUMMARY.md) - Development history and architecture decisions
-- [Quick Start](QUICK_START.md) - Fast setup and resume guide
+- [Frontend Design Guide](docs/FRONTEND_DESIGN.md) - Complete design system with warm kitchen color palette
+- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment to moms-recipes.tachyonfuture.com
+- [Docker Deployment](docs/DOCKER_DEPLOYMENT.md) - Docker setup and container orchestration
+- [Project Summary](docs/PROJECT_SUMMARY.md) - Development history and architecture decisions
+- [Quick Start](docs/QUICK_START.md) - Fast setup and resume guide
+- [CI/CD Setup](docs/CI_CD_SETUP.md) - GitHub Actions pipeline configuration
+- [MySQL Migration](docs/MYSQL_MIGRATION_COMPLETE.md) - SQLite to MySQL migration details
 
 ## Current Status
 
