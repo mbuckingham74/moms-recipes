@@ -1,5 +1,15 @@
 # Mom's Recipes
 
+[![CI](https://github.com/mbuckingham74/moms-recipes/actions/workflows/ci.yml/badge.svg)](https://github.com/mbuckingham74/moms-recipes/actions/workflows/ci.yml)
+[![CD](https://github.com/mbuckingham74/moms-recipes/actions/workflows/cd.yml/badge.svg)](https://github.com/mbuckingham74/moms-recipes/actions/workflows/cd.yml)
+![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Express](https://img.shields.io/badge/Express-5.1-000000?logo=express&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-Latest-646CFF?logo=vite&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-80%25%20coverage-C21325?logo=jest&logoColor=white)
+
 A full-stack recipe organization web application for managing and searching through ~370 family recipes.
 
 **📚 Documentation:**
