@@ -10,7 +10,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Jest](https://img.shields.io/badge/Jest-80%25%20coverage-C21325?logo=jest&logoColor=white)
 
-A full-stack recipe organization web application for managing and searching through ~370 family recipes.
+A full-stack recipe organization web application for managing and searching through family recipes.
 
 **📚 Documentation:**
 - [API Documentation](#api-endpoints)
