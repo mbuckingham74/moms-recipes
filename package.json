@@ -23,11 +23,18 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.1",
+    "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.4.5",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "mysql2": "^3.11.5"
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.11.5",
+    "pdf-parse": "^2.4.5",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "jest": "^30.2.0",
