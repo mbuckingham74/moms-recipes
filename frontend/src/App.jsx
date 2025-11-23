@@ -7,6 +7,9 @@ import RecipeDetail from './pages/RecipeDetail';
 import RecipeForm from './pages/RecipeForm';
 import Login from './pages/Login';
 import Dashboard from './pages/admin/Dashboard';
+import PdfUpload from './pages/admin/PdfUpload';
+import PendingRecipes from './pages/admin/PendingRecipes';
+import PendingRecipeReview from './pages/admin/PendingRecipeReview';
 import './App.css';
 
 function App() {
@@ -27,6 +30,30 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/upload"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <PdfUpload />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pending"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <PendingRecipes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pending/:id"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <PendingRecipeReview />
                 </ProtectedRoute>
               }
             />
