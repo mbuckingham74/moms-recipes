@@ -14,6 +14,14 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME:-moms_recipes}
       FRONTEND_URL: ${FRONTEND_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ADMIN1_USERNAME: ${ADMIN1_USERNAME}
+      ADMIN1_PASSWORD: ${ADMIN1_PASSWORD}
+      ADMIN1_EMAIL: ${ADMIN1_EMAIL}
+      ADMIN2_USERNAME: ${ADMIN2_USERNAME}
+      ADMIN2_PASSWORD: ${ADMIN2_PASSWORD}
+      ADMIN2_EMAIL: ${ADMIN2_EMAIL}
     volumes:
       - ./backend/uploads:/app/uploads
       - backend-data:/app/data
