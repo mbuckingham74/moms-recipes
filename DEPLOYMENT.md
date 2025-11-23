@@ -45,6 +45,17 @@ ADMIN2_PASSWORD=<password>
 ADMIN2_EMAIL=<email>
 ```
 
+## .env Template System
+
+**To prevent chronic .env loss issues, the server uses a template system:**
+
+- **`.env.production.template`** (server-side only) - Source of truth for production environment
+- **`.env`** - Automatically restored from template during deployments
+- **`deploy-safe.sh`** - Automatically applies template before deployment
+- **`restore-env.sh`** - Manually restore .env from template anytime
+
+The template is stored **only on the server** (not in git) for security. It's automatically applied by `deploy-safe.sh` to ensure credentials are never lost.
+
 ## Deployment Process
 
 ### Standard Deployment (Code Changes Only)
@@ -63,7 +74,7 @@ git pull
 docker compose up -d --build
 ```
 
-### Deployment with .env Changes
+###  Deployment with .env Changes
 
 If you need to update environment variables:
 
@@ -74,12 +85,17 @@ ssh michael@tachyonfuture.com
 # Navigate to project
 cd ~/moms-recipes
 
-# Edit .env file
-nano .env
+# Edit the production template (this is the source of truth)
+nano .env.production.template
+
+# Restore .env from template
+./restore-env.sh
 
 # Restart containers to pick up new variables
 docker compose restart
 ```
+
+**IMPORTANT:** Always edit `.env.production.template` (not `.env` directly). The template is automatically applied during deployments.
 
 ### Verifying .env is Loaded
 
