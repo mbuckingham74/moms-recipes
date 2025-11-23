@@ -92,6 +92,78 @@ const initDatabase = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Users table for authentication
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(100) UNIQUE NOT NULL,
+        email VARCHAR(255),
+        password_hash VARCHAR(255) NOT NULL,
+        role ENUM('admin', 'viewer') NOT NULL DEFAULT 'viewer',
+        created_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        updated_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        INDEX idx_users_username (username)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Uploaded files tracking
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS uploaded_files (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        filename VARCHAR(255) NOT NULL,
+        original_name VARCHAR(255) NOT NULL,
+        file_path VARCHAR(500) NOT NULL,
+        file_size INT NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        uploaded_by INT NOT NULL,
+        uploaded_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        processed BOOLEAN NOT NULL DEFAULT FALSE,
+        FOREIGN KEY (uploaded_by) REFERENCES users(id),
+        INDEX idx_uploaded_files_uploaded_by (uploaded_by)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Pending recipes (from PDF before approval)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS pending_recipes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        file_id INT NOT NULL,
+        title VARCHAR(500),
+        source VARCHAR(500),
+        instructions TEXT,
+        raw_text TEXT,
+        parsed_data JSON,
+        created_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        FOREIGN KEY (file_id) REFERENCES uploaded_files(id) ON DELETE CASCADE,
+        INDEX idx_pending_recipes_file_id (file_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Pending recipe ingredients
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS pending_ingredients (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        pending_recipe_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        quantity VARCHAR(50),
+        unit VARCHAR(50),
+        position INT NOT NULL,
+        FOREIGN KEY (pending_recipe_id) REFERENCES pending_recipes(id) ON DELETE CASCADE,
+        INDEX idx_pending_ingredients_recipe_id (pending_recipe_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Pending recipe tags
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS pending_tags (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        pending_recipe_id INT NOT NULL,
+        tag_name VARCHAR(100) NOT NULL,
+        FOREIGN KEY (pending_recipe_id) REFERENCES pending_recipes(id) ON DELETE CASCADE,
+        INDEX idx_pending_tags_recipe_id (pending_recipe_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     console.log('MySQL database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
