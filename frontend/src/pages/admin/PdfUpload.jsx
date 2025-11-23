@@ -40,11 +40,7 @@ function PdfUpload() {
       const formData = new FormData();
       formData.append('pdf', file);
 
-      const response = await api.post('/admin/upload-pdf', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api.post('/admin/upload-pdf', formData);
 
       if (response.data.success) {
         setSuccess(`Successfully uploaded! ${response.data.recipesCount} recipe(s) parsed.`);
