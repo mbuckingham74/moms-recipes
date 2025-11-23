@@ -66,7 +66,7 @@ DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=<your_mysql_root_password>
 DB_NAME=moms_recipes
-FRONTEND_URL=https://recipes.tachyonfuture.com
+FRONTEND_URL=https://moms-recipes.tachyonfuture.com
 PORT=3001
 ```
 
@@ -122,7 +122,7 @@ exit;
 
 1. Log into NPM: https://npm.tachyonfuture.com
 2. Create new Proxy Host:
-   - **Domain Names**: `api.recipes.tachyonfuture.com` (or your preferred subdomain)
+   - **Domain Names**: `api.moms-recipes.tachyonfuture.com`
    - **Scheme**: `http`
    - **Forward Hostname/IP**: `moms-recipes-backend`
    - **Forward Port**: `3001`
@@ -143,7 +143,7 @@ exit;
 #### Frontend Proxy Host
 
 1. Create new Proxy Host:
-   - **Domain Names**: `recipes.tachyonfuture.com`
+   - **Domain Names**: `moms-recipes.tachyonfuture.com`
    - **Scheme**: `http`
    - **Forward Hostname/IP**: `moms-recipes-frontend`
    - **Forward Port**: `80`
@@ -163,10 +163,10 @@ exit;
 docker ps --format '{{.Names}}\t{{.Status}}'
 
 # Test backend API
-curl https://api.recipes.tachyonfuture.com/health
+curl https://api.moms-recipes.tachyonfuture.com/health
 
 # Test frontend
-curl https://recipes.tachyonfuture.com
+curl https://moms-recipes.tachyonfuture.com
 
 # Check backend logs
 docker logs moms-recipes-backend --tail 50

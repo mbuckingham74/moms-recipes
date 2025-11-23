@@ -39,7 +39,7 @@ jobs:
           DB_USER=root
           DB_PASSWORD=${DB_PASSWORD}
           DB_NAME=moms_recipes
-          FRONTEND_URL=https://recipes.tachyonfuture.com
+          FRONTEND_URL=https://moms-recipes.tachyonfuture.com
           PORT=3001
           EOF
 
@@ -51,5 +51,5 @@ jobs:
       - name: Check deployment status
         run: |
           sleep 10
-          curl -f https://recipes.tachyonfuture.com || echo "⚠️ Frontend check failed"
+          curl -f https://moms-recipes.tachyonfuture.com || echo "⚠️ Frontend check failed"
           curl -f https://api.moms-recipes.tachyonfuture.com/api/health || echo "⚠️ Backend check failed"

@@ -174,7 +174,7 @@ DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_mysql_password
 DB_NAME=moms_recipes
-FRONTEND_URL=https://recipes.tachyonfuture.com
+FRONTEND_URL=https://moms-recipes.tachyonfuture.com
 PORT=3001
 ```
 
@@ -260,8 +260,8 @@ docker compose up -d --build
 
 After deployment, verify:
 
-- [ ] Backend health check: `https://api.recipes.tachyonfuture.com/health`
-- [ ] Frontend loads: `https://recipes.tachyonfuture.com`
+- [ ] Backend health check: `https://api.moms-recipes.tachyonfuture.com/health`
+- [ ] Frontend loads: `https://moms-recipes.tachyonfuture.com`
 - [ ] Can view recipes list
 - [ ] Can view individual recipe
 - [ ] Can create new recipe
