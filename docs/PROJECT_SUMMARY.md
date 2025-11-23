@@ -557,8 +557,23 @@ Delete `backend/data/recipes.db` and restart server (auto-recreates empty databa
 **What NOT to Commit:**
 - Database files (`backend/data/`)
 - Uploaded images (`backend/uploads/`)
-- Environment variables (`.env`)
+- Environment variables (`.env`) - **See [DEPLOYMENT.md](../DEPLOYMENT.md) for .env management**
 - Node modules (`node_modules/`)
+
+---
+
+## Deployment
+
+**Production URL:** https://moms-recipes.tachyonfuture.com
+
+**Deployment Method:**
+```bash
+ssh michael@tachyonfuture.com "cd ~/moms-recipes && ./deploy-safe.sh"
+```
+
+**Important:** Always use the `deploy-safe.sh` script to ensure `.env` file is preserved during deployment.
+
+For complete deployment instructions, see **[DEPLOYMENT.md](../DEPLOYMENT.md)**.
 
 ---
 
