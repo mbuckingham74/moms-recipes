@@ -11,6 +11,20 @@ const api = axios.create({
   withCredentials: true, // Important for cookies
 });
 
+// Request interceptor to handle FormData properly
+api.interceptors.request.use(
+  (config) => {
+    // If the data is FormData, remove Content-Type header to let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Recipe endpoints
 export const recipeAPI = {
   // Get all recipes with pagination
