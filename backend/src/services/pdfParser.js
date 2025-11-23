@@ -1,4 +1,4 @@
-const pdf = require('pdf-parse/lib/pdf-parse.js');
+const { PDFParse } = require('pdf-parse');
 const fs = require('fs').promises;
 
 class PDFParser {
@@ -12,14 +12,19 @@ class PDFParser {
       // Read PDF file
       const dataBuffer = await fs.readFile(filePath);
 
-      // Parse PDF
-      const data = await pdf(dataBuffer);
+      // Parse PDF using v2 API
+      const parser = new PDFParse({ data: dataBuffer });
+      const result = await parser.getText();
+      const info = await parser.getInfo();
+
+      // Clean up parser resources
+      await parser.destroy();
 
       return {
-        text: data.text,
-        numpages: data.numpages,
-        info: data.info,
-        metadata: data.metadata
+        text: result.text,
+        numpages: result.total,
+        info: info.info,
+        metadata: info.metadata
       };
     } catch (error) {
       throw new Error(`PDF parsing failed: ${error.message}`);
