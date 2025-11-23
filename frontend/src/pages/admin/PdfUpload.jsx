@@ -40,7 +40,12 @@ function PdfUpload() {
       const formData = new FormData();
       formData.append('pdf', file);
 
-      const response = await api.post('/admin/upload-pdf', formData);
+      // Don't set Content-Type - let axios set it automatically with the correct boundary
+      const response = await api.post('/admin/upload-pdf', formData, {
+        headers: {
+          'Content-Type': undefined
+        }
+      });
 
       if (response.data.success) {
         setSuccess(`Successfully uploaded! ${response.data.recipesCount} recipe(s) parsed.`);
