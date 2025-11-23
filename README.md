@@ -13,11 +13,11 @@
 A full-stack recipe organization web application for managing and searching through family recipes.
 
 **📚 Documentation:**
+- **[Deployment Guide](DEPLOYMENT.md)** - **IMPORTANT:** Environment variable management and safe deployment
 - [API Documentation](#api-endpoints)
 - [Security Guidelines](SECURITY_GUIDELINES.md) - Security best practices and credential management
 - [Dependency Notes](DEPENDENCIES.md) - Dependency management and migration strategies
 - [Frontend Design Guide](docs/FRONTEND_DESIGN.md) - Complete design system with warm kitchen color palette
-- [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment to moms-recipes.tachyonfuture.com
 - [Docker Deployment](docs/DOCKER_DEPLOYMENT.md) - Docker setup and container orchestration
 - [Project Summary](docs/PROJECT_SUMMARY.md) - Development history and architecture decisions
 - [Quick Start](docs/QUICK_START.md) - Fast setup and resume guide
