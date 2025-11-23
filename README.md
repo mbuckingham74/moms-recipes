@@ -23,6 +23,7 @@ A full-stack recipe organization web application for managing and searching thro
 - [Quick Start](docs/QUICK_START.md) - Fast setup and resume guide
 - [CI/CD Setup](docs/CI_CD_SETUP.md) - GitHub Actions pipeline configuration
 - [MySQL Migration](docs/MYSQL_MIGRATION_COMPLETE.md) - SQLite to MySQL migration details
+- [Fixes Summary](docs/FIXES_SUMMARY.md) - Bug fixes and improvements log
 
 ## Current Status
 

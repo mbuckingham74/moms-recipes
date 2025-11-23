@@ -380,10 +380,13 @@ See [DOCKER_DEPLOYMENT.md#troubleshooting](DOCKER_DEPLOYMENT.md#troubleshooting)
 - SQL whitespace normalization: Strip and normalize whitespace for MySQL prepared statements
 - Frontend build: Added `VITE_API_BASE_URL` build argument for production API URL
 - CORS configuration: Backend configured with production frontend URL
+- **PDF Upload FormData Fix (Nov 23, 2025):** Fixed Content-Type header handling for file uploads
+- **pendingRecipeModel MySQL Support (Nov 23, 2025):** Added async/await MySQL support to pending recipe model
 
 ---
 
 **Migration completed:** November 21, 2025
 **Deployment completed:** November 21, 2025
+**Last Updated:** November 23, 2025
 **By:** Claude Code
 **Status:** ✅ **LIVE IN PRODUCTION**

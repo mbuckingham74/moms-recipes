@@ -246,5 +246,86 @@ Ready for:
 
 ---
 
-*Fixed: 2025-11-21*
-*Commit: d98e820*
+## Additional Fixes (2025-11-23)
+
+### 9. ✅ PDF Upload FormData Content-Type Fix
+**Problem:** PDF file uploads were failing with CORS errors. The code was setting `'Content-Type': undefined` which doesn't work in axios—it literally sets the string `"undefined"` as the header value.
+
+**Solution:**
+1. Added request interceptor in [frontend/src/services/api.js](../frontend/src/services/api.js) that detects FormData and removes the default `application/json` Content-Type header
+2. This allows the browser to automatically set the correct `multipart/form-data` header with the proper boundary parameter
+3. Simplified [frontend/src/pages/admin/PdfUpload.jsx](../frontend/src/pages/admin/PdfUpload.jsx) to not pass headers config at all
+
+**Before:**
+```javascript
+// This doesn't work - sets literal string "undefined"
+const response = await api.post('/admin/upload-pdf', formData, {
+  headers: {
+    'Content-Type': undefined
+  }
+});
+```
+
+**After:**
+```javascript
+// Request interceptor automatically handles FormData
+api.interceptors.request.use((config) => {
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  return config;
+});
+
+// Clean upload call
+const response = await api.post('/admin/upload-pdf', formData);
+```
+
+**Test:** PDF uploads now work correctly in production without CORS errors
+
+---
+
+### 10. ✅ pendingRecipeModel MySQL Support
+**Problem:** The `pendingRecipeModel.js` was using SQLite-specific synchronous transaction syntax without async/await, causing `TypeError: Bind parameters must not contain undefined` errors in production MySQL.
+
+**Solution:** Added MySQL/SQLite detection and async/await support in [backend/src/models/pendingRecipeModel.js](../backend/src/models/pendingRecipeModel.js)
+- Added `isMySQL` detection like recipeModel uses
+- Implemented async transaction handling for MySQL with proper `await` keywords
+- Used `for...await` loops instead of `forEach` for async operations in MySQL mode
+- Kept synchronous transaction handling for SQLite (development mode)
+
+**Before (SQLite only):**
+```javascript
+static async create({ fileId, title, ...data }) {
+  const insertPending = db.transaction((txDb) => {
+    const result = recipeStmt.run(...); // Synchronous
+    ingredients.forEach((ingredient, index) => {
+      ingredientStmt.run(...); // Synchronous
+    });
+  });
+  return await insertPending(); // Error in MySQL!
+}
+```
+
+**After (MySQL + SQLite):**
+```javascript
+static async create({ fileId, title, ...data }) {
+  if (isMySQL) {
+    const insertPending = db.transaction(async (txDb) => {
+      const result = await recipeStmt.run(...); // Async
+      for (let index = 0; index < ingredients.length; index++) {
+        await ingredientStmt.run(...); // Async in loop
+      }
+    });
+    return await insertPending();
+  } else {
+    // SQLite synchronous version
+  }
+}
+```
+
+**Test:** Backend now runs without errors in production; PDF parsing saves correctly to pending recipes
+
+---
+
+*Original Fixes: 2025-11-21 (Commit: d98e820)*
+*Additional Fixes: 2025-11-23 (Commits: cdf449d, 7605c5c)*
