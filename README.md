@@ -14,6 +14,8 @@ A full-stack recipe organization web application for managing and searching thro
 
 **📚 Documentation:**
 - [API Documentation](#api-endpoints)
+- [Security Guidelines](SECURITY_GUIDELINES.md) - Security best practices and credential management
+- [Dependency Notes](DEPENDENCIES.md) - Dependency management and migration strategies
 - [Frontend Design Guide](docs/FRONTEND_DESIGN.md) - Complete design system with warm kitchen color palette
 - [Deployment Guide](docs/DEPLOYMENT.md) - Production deployment to moms-recipes.tachyonfuture.com
 - [Docker Deployment](docs/DOCKER_DEPLOYMENT.md) - Docker setup and container orchestration
@@ -26,16 +28,27 @@ A full-stack recipe organization web application for managing and searching thro
 
 ✅ **Backend API** - Complete and tested (80% code coverage)
 ✅ **Frontend** - React application complete with warm kitchen design
+✅ **Admin Panel** - Authentication, dashboard, and PDF upload backend ready
 ✅ **Production Deployment** - Live at https://moms-recipes.tachyonfuture.com
-⬜ **Recipe Import** - 0/370 recipes imported
+⬜ **Recipe Import** - 0/370 recipes imported (PDF upload UI coming in Phase 2)
 
 ## Features
 
-- Store recipe information (title, source, instructions, images)
-- Structured ingredient storage for efficient searching
-- Tag-based categorization and filtering
+### Public Features
+- Browse and search family recipes
 - Full-text search by title, ingredient, or tags
-- RESTful API with CRUD operations
+- Tag-based categorization and filtering
+- Responsive design with warm kitchen color palette
+
+### Admin Features 🔐
+- **Authentication**: Secure JWT-based login with httpOnly cookies
+- **Admin Dashboard**: View stats and manage recipes
+- **PDF Recipe Upload**: AI-powered recipe parsing with Anthropic Claude
+  - Upload PDF recipes (text-based PDFs supported)
+  - Automatic extraction of title, ingredients, instructions, and tags
+  - Review and edit before publishing
+- **Manual Recipe Entry**: Traditional form-based recipe creation
+- **Role-based Access**: Admin vs. viewer permissions
 
 ## Tech Stack
 
@@ -43,14 +56,19 @@ A full-stack recipe organization web application for managing and searching thro
 - **Runtime**: Node.js 20
 - **Framework**: Express 5.1.0
 - **Database**: MySQL 8 (production) / SQLite (development)
+- **Authentication**: JWT + bcrypt with httpOnly cookies
+- **AI Integration**: Anthropic Claude for recipe parsing
+- **File Processing**: Multer + pdf-parse for PDF uploads
 - **Testing**: Jest + Supertest (80% coverage)
 - **Features**: CORS, validation, error handling, async/await
 
 ### Frontend
 - **Framework**: React 19
 - **Build Tool**: Vite
-- **Routing**: React Router
+- **Routing**: React Router with protected routes
+- **State Management**: React Context (Auth)
 - **HTTP Client**: Axios
+- **File Upload**: react-dropzone (Phase 2)
 - **Styling**: CSS3 with custom properties
 
 ## Project Structure
@@ -87,7 +105,7 @@ moms-recipes/
 
 ## Database Schema
 
-### Tables
+### Core Tables
 
 **recipes**
 - `id` (PRIMARY KEY)
@@ -113,13 +131,66 @@ moms-recipes/
 **recipe_tags** (junction table)
 - `recipe_id`, `tag_id` (composite PRIMARY KEY)
 
+### Admin Tables
+
+**users**
+- `id` (PRIMARY KEY)
+- `username` (TEXT, unique)
+- `email` (TEXT)
+- `password_hash` (TEXT, bcrypt)
+- `role` (ENUM: 'admin', 'viewer')
+- `created_at`, `updated_at`
+
+**uploaded_files**
+- `id` (PRIMARY KEY)
+- `filename`, `original_name`, `file_path`
+- `file_size`, `mime_type`
+- `uploaded_by` (FOREIGN KEY to users)
+- `processed` (BOOLEAN)
+- `uploaded_at`
+
+**pending_recipes**
+- `id` (PRIMARY KEY)
+- `file_id` (FOREIGN KEY to uploaded_files)
+- `title`, `source`, `instructions`
+- `raw_text` (extracted PDF text)
+- `parsed_data` (JSON from Claude)
+- `created_at`
+
+**pending_ingredients** & **pending_tags**
+- Temporary storage for PDF-parsed recipes awaiting approval
+
 ## Quick Start
+
+### Environment Setup
+
+1. Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env
+```
+
+2. Configure environment variables in `.env`:
+```env
+# Required
+JWT_SECRET=your-secret-key-here
+ANTHROPIC_API_KEY=your-anthropic-api-key
+
+# Admin users (for initial setup)
+ADMIN1_USERNAME=your-username
+ADMIN1_PASSWORD=your-secure-password
+ADMIN1_EMAIL=your-email@example.com
+```
+
+See [SECURITY_GUIDELINES.md](SECURITY_GUIDELINES.md) for best practices.
 
 ### Backend Setup
 
 ```bash
 # Install backend dependencies
 npm install
+
+# Create admin users
+node backend/scripts/seedAdminUsers.js
 
 # Run backend tests (optional)
 npm test
@@ -153,12 +224,81 @@ See [frontend/README.md](frontend/README.md) for detailed frontend documentation
 
 ## API Endpoints
 
+### Authentication
+
+#### Login
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "username": "your-username",
+  "password": "your-password"
+}
+```
+
+Sets httpOnly cookie with JWT token.
+
+#### Logout
+```http
+POST /api/auth/logout
+```
+
+Clears authentication cookie.
+
+#### Get Current User
+```http
+GET /api/auth/me
+```
+
+Returns current authenticated user info.
+
+### Admin - PDF Upload
+
+#### Upload and Parse PDF
+```http
+POST /api/admin/upload-pdf
+Content-Type: multipart/form-data
+Authorization: Required (admin)
+
+pdf: <file>
+```
+
+Uploads PDF, extracts text, parses with Claude AI, saves as pending recipe.
+
+#### Get Pending Recipes
+```http
+GET /api/admin/pending-recipes
+Authorization: Required (admin)
+```
+
+#### Get Pending Recipe
+```http
+GET /api/admin/pending-recipes/:id
+Authorization: Required (admin)
+```
+
+#### Update Pending Recipe
+```http
+PUT /api/admin/pending-recipes/:id
+Authorization: Required (admin)
+```
+
+#### Approve Pending Recipe
+```http
+POST /api/admin/pending-recipes/:id/approve
+Authorization: Required (admin)
+```
+
+Moves pending recipe to main recipes table.
+
 ### Recipes
 
 #### Create Recipe
 ```http
 POST /api/recipes
 Content-Type: application/json
+Authorization: Required (admin)
 
 {
   "title": "Chocolate Chip Cookies",
@@ -223,6 +363,7 @@ Returns recipes with ANY of the specified tags.
 ```http
 PUT /api/recipes/:id
 Content-Type: application/json
+Authorization: Required (admin)
 
 {
   "title": "Updated Title",
@@ -236,6 +377,7 @@ Only include fields you want to update.
 #### Delete Recipe
 ```http
 DELETE /api/recipes/:id
+Authorization: Required (admin)
 ```
 
 ### Tags
@@ -315,9 +457,30 @@ curl http://localhost:3001/api/recipes/search?title=bread
 
 ## Environment Variables
 
-Create a `.env` file:
+Create a `.env` file (see `.env.example` for template):
 
 ```env
 PORT=3001
 NODE_ENV=development
+
+# Authentication
+JWT_SECRET=your-secret-key-change-in-production
+
+# Anthropic API
+ANTHROPIC_API_KEY=your-anthropic-api-key-here
+
+# Admin Users (for seed script)
+ADMIN1_USERNAME=your-admin-username
+ADMIN1_PASSWORD=your-secure-password
+ADMIN1_EMAIL=your-email@example.com
+
+# Optional: Second admin
+ADMIN2_USERNAME=second-admin-username
+ADMIN2_PASSWORD=second-secure-password
+ADMIN2_EMAIL=second-email@example.com
+
+# Production CORS
+# FRONTEND_URL=https://moms-recipes.tachyonfuture.com
 ```
+
+**Security:** See [SECURITY_GUIDELINES.md](SECURITY_GUIDELINES.md) for credential management best practices.
