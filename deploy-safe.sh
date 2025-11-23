@@ -10,17 +10,24 @@ echo "=========================================="
 # Navigate to project directory
 cd ~/moms-recipes
 
-# Check if .env exists
-if [ ! -f .env ]; then
-    echo "❌ ERROR: .env file not found!"
-    echo "Please create .env file with required variables before deploying."
-    echo "See DEPLOYMENT.md for required variables."
-    exit 1
+# Restore .env from production template
+if [ -f .env.production.template ]; then
+    echo "🔧 Restoring .env from production template..."
+    chmod 644 .env 2>/dev/null || true
+    cp .env.production.template .env
+    echo "✅ .env restored ($(wc -l < .env) lines)"
+else
+    # Check if .env exists
+    if [ ! -f .env ]; then
+        echo "❌ ERROR: Neither .env nor .env.production.template found!"
+        echo "Please create .env file with required variables before deploying."
+        echo "See DEPLOYMENT.md for required variables."
+        exit 1
+    fi
+    echo "⚠️  Warning: .env.production.template not found, using existing .env"
 fi
 
-echo "✅ .env file found"
-
-# Backup .env (just in case)
+# Backup .env
 cp .env .env.backup
 echo "✅ .env backed up to .env.backup"
 
