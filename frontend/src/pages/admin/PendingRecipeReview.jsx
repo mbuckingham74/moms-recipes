@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import '../../styles/PendingRecipeReview.css';
@@ -12,11 +12,7 @@ function PendingRecipeReview() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadPendingRecipe();
-  }, [id]);
-
-  const loadPendingRecipe = async () => {
+  const loadPendingRecipe = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -28,7 +24,11 @@ function PendingRecipeReview() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadPendingRecipe();
+  }, [loadPendingRecipe]);
 
   const handleChange = (field, value) => {
     setRecipe(prev => ({

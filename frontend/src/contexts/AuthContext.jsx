@@ -3,6 +3,7 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -26,7 +27,7 @@ export const AuthProvider = ({ children }) => {
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
       }
-    } catch (error) {
+    } catch {
       // Not authenticated or token expired
       setUser(null);
     } finally {
@@ -53,7 +54,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await api.post('/auth/logout');
-    } catch (error) {
+    } catch {
       // Ignore logout errors
     } finally {
       setUser(null);
