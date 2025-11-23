@@ -26,8 +26,8 @@ function Dashboard() {
       setError('');
 
       // Load recipes count
-      const recipesResponse = await api.getAll();
-      const totalRecipes = recipesResponse.data?.data?.length || 0;
+      const recipesResponse = await api.get('/recipes');
+      const totalRecipes = recipesResponse.data?.recipes?.length || 0;
 
       // Load pending recipes
       const pendingResponse = await api.get('/admin/pending-recipes');
