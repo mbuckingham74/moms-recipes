@@ -61,6 +61,8 @@ exports.uploadAndParse = asyncHandler(async (req, res) => {
       fileId,
       title: parsedRecipe.title,
       source: parsedRecipe.source,
+      category: parsedRecipe.category,
+      description: parsedRecipe.description,
       instructions: parsedRecipe.instructions,
       rawText,
       parsedData: parsedRecipe,
@@ -125,7 +127,7 @@ exports.getPendingRecipe = asyncHandler(async (req, res) => {
  */
 exports.updatePendingRecipe = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { title, source, instructions, ingredients, tags } = req.body;
+  const { title, source, category, description, instructions, ingredients, tags } = req.body;
 
   // Validate
   if (!title || !title.trim()) {
@@ -142,6 +144,8 @@ exports.updatePendingRecipe = asyncHandler(async (req, res) => {
   await PendingRecipeModel.update(id, {
     title,
     source,
+    category,
+    description,
     instructions,
     ingredients,
     tags

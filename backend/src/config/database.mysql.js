@@ -130,6 +130,8 @@ const initDatabase = async () => {
         file_id INT NOT NULL,
         title VARCHAR(500),
         source VARCHAR(500),
+        category VARCHAR(255),
+        description TEXT,
         instructions TEXT,
         raw_text TEXT,
         parsed_data JSON,

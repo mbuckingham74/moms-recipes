@@ -10,6 +10,8 @@ class PendingRecipeModel {
    * @param {number} recipeData.fileId - ID of uploaded file
    * @param {string} recipeData.title - Recipe title
    * @param {string} recipeData.source - Recipe source
+   * @param {string} recipeData.category - Recipe category
+   * @param {string} recipeData.description - Recipe description
    * @param {string} recipeData.instructions - Cooking instructions
    * @param {string} recipeData.rawText - Raw extracted PDF text
    * @param {Object} recipeData.parsedData - Full parsed data from LLM
@@ -17,7 +19,7 @@ class PendingRecipeModel {
    * @param {Array} recipeData.tags - Array of tag strings
    * @returns {Promise<number>} - Pending recipe ID
    */
-  static async create({ fileId, title, source, instructions, rawText, parsedData, ingredients = [], tags = [] }) {
+  static async create({ fileId, title, source, category, description, instructions, rawText, parsedData, ingredients = [], tags = [] }) {
     const timestamp = Math.floor(Date.now() / 1000);
 
     let pendingRecipeId;
@@ -27,14 +29,16 @@ class PendingRecipeModel {
       const insertPending = db.transaction(async (txDb) => {
         // Insert pending recipe
         const recipeStmt = txDb.prepare(`
-          INSERT INTO pending_recipes (file_id, title, source, instructions, raw_text, parsed_data, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO pending_recipes (file_id, title, source, category, description, instructions, raw_text, parsed_data, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const result = await recipeStmt.run(
           fileId,
           title || null,
           source || null,
+          category || null,
+          description || null,
           instructions || null,
           rawText || null,
           JSON.stringify(parsedData),
@@ -83,14 +87,16 @@ class PendingRecipeModel {
       const insertPending = db.transaction(() => {
         // Insert pending recipe
         const recipeStmt = db.prepare(`
-          INSERT INTO pending_recipes (file_id, title, source, instructions, raw_text, parsed_data, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO pending_recipes (file_id, title, source, category, description, instructions, raw_text, parsed_data, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         const result = recipeStmt.run(
           fileId,
           title || null,
           source || null,
+          category || null,
+          description || null,
           instructions || null,
           rawText || null,
           JSON.stringify(parsedData),
@@ -181,10 +187,24 @@ class PendingRecipeModel {
       }
     }
 
+    // Format ingredients as text (one per line) for frontend
+    const ingredients_text = ingredients.map(ing => {
+      const parts = [];
+      if (ing.quantity) parts.push(ing.quantity);
+      if (ing.unit) parts.push(ing.unit);
+      if (ing.name) parts.push(ing.name);
+      return parts.join(' ');
+    }).join('\n');
+
+    // Use instructions as instructions_text for frontend compatibility
+    const instructions_text = recipe.instructions || '';
+
     return {
       ...recipe,
       ingredients,
-      tags
+      tags,
+      ingredients_text,
+      instructions_text
     };
   }
 
@@ -221,23 +241,25 @@ class PendingRecipeModel {
    * @param {Object} updates
    * @param {string} updates.title
    * @param {string} updates.source
+   * @param {string} updates.category
+   * @param {string} updates.description
    * @param {string} updates.instructions
    * @param {Array} updates.ingredients
    * @param {Array} updates.tags
    * @returns {Promise<void>}
    */
-  static async update(id, { title, source, instructions, ingredients, tags }) {
+  static async update(id, { title, source, category, description, instructions, ingredients, tags }) {
     if (isMySQL) {
       // MySQL: Use async transaction
       const updatePending = db.transaction(async (txDb) => {
         // Update main record
         const updateStmt = txDb.prepare(`
           UPDATE pending_recipes
-          SET title = ?, source = ?, instructions = ?
+          SET title = ?, source = ?, category = ?, description = ?, instructions = ?
           WHERE id = ?
         `);
 
-        await updateStmt.run(title, source, instructions, id);
+        await updateStmt.run(title, source, category, description, instructions, id);
 
         // Delete and re-insert ingredients if provided
         if (ingredients) {
@@ -282,11 +304,11 @@ class PendingRecipeModel {
         // Update main record
         const updateStmt = db.prepare(`
           UPDATE pending_recipes
-          SET title = ?, source = ?, instructions = ?
+          SET title = ?, source = ?, category = ?, description = ?, instructions = ?
           WHERE id = ?
         `);
 
-        updateStmt.run(title, source, instructions, id);
+        updateStmt.run(title, source, category, description, instructions, id);
 
         // Delete and re-insert ingredients if provided
         if (ingredients) {

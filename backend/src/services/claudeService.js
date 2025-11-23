@@ -58,6 +58,8 @@ The JSON structure should be:
 {
   "title": "Recipe name",
   "source": "Where the recipe came from (cookbook, website, person, etc.)",
+  "category": "Recipe category (e.g., Appetizers, Main Courses, Desserts, Snacks, etc.)",
+  "description": "Brief 1-2 sentence description of the recipe",
   "ingredients": [
     {
       "name": "ingredient name",
@@ -72,6 +74,8 @@ The JSON structure should be:
 Guidelines:
 - Extract title from the recipe (often the first line or clearly labeled)
 - Identify the source (cookbook name, website, "Mom's recipe", etc.)
+- Extract or infer category (Appetizers, Main Courses, Desserts, Snacks, Soups & Salads, etc.)
+- Create a brief description summarizing what the recipe is (1-2 sentences)
 - Parse ingredients carefully:
   * Separate quantity, unit, and ingredient name
   * Use "whole" or "piece" for countable items without units
@@ -108,6 +112,14 @@ ${recipeText}`;
       // Validate required fields
       if (!parsed.title) {
         parsed.title = 'Untitled Recipe';
+      }
+
+      if (!parsed.category) {
+        parsed.category = null;
+      }
+
+      if (!parsed.description) {
+        parsed.description = null;
       }
 
       if (!Array.isArray(parsed.ingredients)) {

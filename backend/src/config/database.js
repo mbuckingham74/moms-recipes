@@ -118,6 +118,8 @@ if (useMySQL) {
         file_id INTEGER NOT NULL,
         title TEXT,
         source TEXT,
+        category TEXT,
+        description TEXT,
         instructions TEXT,
         raw_text TEXT,
         parsed_data TEXT,
