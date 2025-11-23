@@ -12,7 +12,7 @@ class ClaudeService {
    * @param {string} model - Claude model to use
    * @returns {Promise<string>} - Claude's response
    */
-  static async sendMessage(userMessage, systemPrompt = '', model = 'claude-3-5-sonnet-20240620') {
+  static async sendMessage(userMessage, systemPrompt = '', model = 'claude-sonnet-4-5-20250929') {
     try {
       const params = {
         model,
