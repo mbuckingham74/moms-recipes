@@ -73,6 +73,8 @@ class FileModel {
       SET processed = 1
       WHERE id = ?
     `);
+    // Note: Using 1 instead of TRUE for SQLite/MySQL compatibility
+    // SQLite: INTEGER 0/1, MySQL: BOOLEAN/TINYINT(1)
 
     await stmt.run(fileId);
   }

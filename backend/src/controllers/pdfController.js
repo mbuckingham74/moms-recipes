@@ -30,10 +30,28 @@ exports.uploadAndParse = asyncHandler(async (req, res) => {
     });
 
     // 2. Extract text from PDF
-    const rawText = await PDFParser.extractAndClean(file.path);
+    let rawText;
+    try {
+      rawText = await PDFParser.extractAndClean(file.path);
+    } catch (pdfError) {
+      throw new ApiError(400,
+        'Failed to read PDF file. This may be a corrupted PDF or an unsupported format. ' +
+        'Error: ' + pdfError.message
+      );
+    }
 
+    // Check if we got meaningful text
     if (!rawText || rawText.trim().length < 10) {
-      throw new ApiError(400, 'Could not extract text from PDF. The file may be empty or image-based.');
+      throw new ApiError(400,
+        'Could not extract text from this PDF. This appears to be an image-based or scanned PDF. ' +
+        'OCR (Optical Character Recognition) support is coming in a future update. ' +
+        'For now, please use text-based PDFs or manually enter the recipe.'
+      );
+    }
+
+    // Warn if text seems too short (might be low quality extraction)
+    if (rawText.trim().length < 50) {
+      console.warn(`Warning: PDF text extraction yielded very short text (${rawText.length} chars) for file: ${file.originalname}`);
     }
 
     // 3. Parse recipe with Claude
