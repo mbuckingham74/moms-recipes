@@ -1,4 +1,4 @@
-const pdf = require('pdf-parse');
+const pdf = require('pdf-parse/lib/pdf-parse.js');
 const fs = require('fs').promises;
 
 class PDFParser {
