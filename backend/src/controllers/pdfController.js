@@ -3,8 +3,7 @@ const FileModel = require('../models/fileModel');
 const PendingRecipeModel = require('../models/pendingRecipeModel');
 const PDFParser = require('../services/pdfParser');
 const ClaudeService = require('../services/claudeService');
-const { ApiError } = require('../middleware/errorHandler');
-const asyncHandler = require('../middleware/asyncHandler');
+const { ApiError, asyncHandler } = require('../middleware/errorHandler');
 
 /**
  * Upload PDF and parse recipe

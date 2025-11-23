@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
-const { ApiError } = require('../middleware/errorHandler');
-const asyncHandler = require('../middleware/asyncHandler');
+const { ApiError, asyncHandler } = require('../middleware/errorHandler');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '7d'; // Token expires in 7 days
