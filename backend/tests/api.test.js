@@ -9,10 +9,47 @@ const testDbPath = path.join(__dirname, '../data/test-recipes.db');
 process.env.NODE_ENV = 'test';
 process.env.PORT = 3002;
 process.env.DB_PATH = testDbPath;
+process.env.JWT_SECRET = 'test-secret-key';
 
 // Require modules after setting environment variables
 const db = require('../src/config/database');
 const app = require('../src/server');
+const UserModel = require('../src/models/userModel');
+
+// Global test user and auth token
+let authToken = null;
+
+// Helper function to create a test admin user and login
+const setupTestAuth = async () => {
+  try {
+    // Create admin user
+    await UserModel.create({
+      username: 'testadmin',
+      email: 'admin@test.com',
+      password: 'testpassword123',
+      role: 'admin'
+    });
+
+    // Login to get token
+    const response = await request(app)
+      .post('/api/auth/login')
+      .send({
+        username: 'testadmin',
+        password: 'testpassword123'
+      });
+
+    // Extract token from cookie
+    const cookies = response.headers['set-cookie'];
+    if (cookies && cookies.length > 0) {
+      const tokenCookie = cookies.find(cookie => cookie.startsWith('token='));
+      if (tokenCookie) {
+        authToken = tokenCookie.split(';')[0].split('=')[1];
+      }
+    }
+  } catch (error) {
+    console.error('Failed to setup test auth:', error);
+  }
+};
 
 // Helper function to create a test recipe
 const createTestRecipe = async (overrides = {}) => {
@@ -31,6 +68,7 @@ const createTestRecipe = async (overrides = {}) => {
 
   const response = await request(app)
     .post('/api/recipes')
+    .set('Cookie', [`token=${authToken}`])
     .send({ ...defaultRecipe, ...overrides });
 
   return response.body.recipe;
@@ -38,15 +76,23 @@ const createTestRecipe = async (overrides = {}) => {
 
 describe('Recipe API Integration Tests', () => {
   // Clean up test database before and after tests
-  beforeAll(() => {
+  beforeAll(async () => {
     // Database is already initialized by requiring the modules
     // Clear any existing data
     db.clearDatabase();
+    // Setup authentication
+    await setupTestAuth();
   });
 
-  afterEach(() => {
-    // Clear database between tests to ensure test isolation
-    db.clearDatabase();
+  afterEach(async () => {
+    // Clear only recipe data between tests to ensure test isolation
+    // Keep users (including test admin) to maintain auth
+    const stmt = db.prepare('DELETE FROM recipes');
+    await stmt.run();
+    const stmtIngredients = db.prepare('DELETE FROM ingredients');
+    await stmtIngredients.run();
+    const stmtTags = db.prepare('DELETE FROM recipe_tags');
+    await stmtTags.run();
   });
 
   afterAll(() => {
@@ -90,6 +136,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .post('/api/recipes')
+          .set('Cookie', [`token=${authToken}`])
           .send(recipeData)
           .expect(201);
 
@@ -103,6 +150,7 @@ describe('Recipe API Integration Tests', () => {
       test('should fail without title', async () => {
         const response = await request(app)
           .post('/api/recipes')
+          .set('Cookie', [`token=${authToken}`])
           .send({
             source: 'Test Source',
             ingredients: []
@@ -116,6 +164,7 @@ describe('Recipe API Integration Tests', () => {
       test('should fail with invalid ingredient (missing name)', async () => {
         const response = await request(app)
           .post('/api/recipes')
+          .set('Cookie', [`token=${authToken}`])
           .send({
             title: 'Test Recipe',
             ingredients: [{ quantity: '1', unit: 'cup' }]
@@ -132,6 +181,7 @@ describe('Recipe API Integration Tests', () => {
       test('should fail with invalid tag (non-string)', async () => {
         const response = await request(app)
           .post('/api/recipes')
+          .set('Cookie', [`token=${authToken}`])
           .send({
             title: 'Test Recipe',
             tags: [123, 'valid-tag']
@@ -148,6 +198,7 @@ describe('Recipe API Integration Tests', () => {
       test('should normalize tags to lowercase and dedupe', async () => {
         const response = await request(app)
           .post('/api/recipes')
+          .set('Cookie', [`token=${authToken}`])
           .send({
             title: 'Tag Test Recipe',
             tags: ['Dessert', 'dessert', 'DESSERT', 'cookies', 'Cookies']
@@ -160,6 +211,7 @@ describe('Recipe API Integration Tests', () => {
       test('should trim ingredient values', async () => {
         const response = await request(app)
           .post('/api/recipes')
+          .set('Cookie', [`token=${authToken}`])
           .send({
             title: 'Trim Test Recipe',
             ingredients: [
@@ -306,6 +358,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .put(`/api/recipes/${recipe.id}`)
+          .set('Cookie', [`token=${authToken}`])
           .send({
             title: 'Updated Test Recipe',
             tags: ['updated', 'test']
@@ -322,6 +375,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .put(`/api/recipes/${recipe.id}`)
+          .set('Cookie', [`token=${authToken}`])
           .send({
             tags: ['UPDATED', 'updated', 'Test']
           })
@@ -333,6 +387,7 @@ describe('Recipe API Integration Tests', () => {
       test('should return 404 for non-existent recipe', async () => {
         const response = await request(app)
           .put('/api/recipes/99999')
+          .set('Cookie', [`token=${authToken}`])
           .send({ title: 'New Title' })
           .expect(404);
 
@@ -344,6 +399,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .put(`/api/recipes/${recipe.id}`)
+          .set('Cookie', [`token=${authToken}`])
           .send({
             ingredients: [{ quantity: '1' }] // missing name
           })
@@ -378,6 +434,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .delete(`/api/recipes/${recipe.id}`)
+          .set('Cookie', [`token=${authToken}`])
           .expect(200);
 
         expect(response.body.message).toBe('Recipe deleted successfully');
@@ -391,6 +448,7 @@ describe('Recipe API Integration Tests', () => {
       test('should return 404 for non-existent recipe', async () => {
         const response = await request(app)
           .delete('/api/recipes/99999')
+          .set('Cookie', [`token=${authToken}`])
           .expect(404);
 
         expect(response.body.error).toBe('Recipe not found');
