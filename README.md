@@ -12,6 +12,8 @@
 
 A full-stack recipe organization web application for managing and searching through family recipes.
 
+**🌐 Live Demo:** [https://moms-recipes.tachyonfuture.com](https://moms-recipes.tachyonfuture.com)
+
 **📚 Documentation:**
 - **[Deployment Guide](DEPLOYMENT.md)** - **IMPORTANT:** Environment variable management and safe deployment
 - [API Documentation](#api-endpoints)
