@@ -145,9 +145,9 @@ function Home() {
   return (
     <div className="home">
       <div className="hero">
-        <h1>{pagination.total} Family Recipes</h1>
+        <h1>Mom's Family Recipes</h1>
         <p className="hero-subtitle">
-          Search through Mom's cherished recipe collection
+          Search through {pagination.total} of Mom's Recipes
         </p>
         <SearchBar onSearch={handleSearch} />
       </div>
