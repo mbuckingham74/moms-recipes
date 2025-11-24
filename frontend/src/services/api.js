@@ -61,6 +61,11 @@ export const recipeAPI = {
   getTags: (config = {}) => {
     return api.get('/tags', config);
   },
+
+  // Estimate calories for a recipe
+  estimateCalories: (id, config = {}) => {
+    return api.post(`/recipes/${id}/estimate-calories`, {}, config);
+  },
 };
 
 // Handle errors globally

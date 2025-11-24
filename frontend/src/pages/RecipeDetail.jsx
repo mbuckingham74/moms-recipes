@@ -3,7 +3,6 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { recipeAPI } from '../services/api';
 import { getTagClass, formatDate } from '../utils/recipeHelpers';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
 import './RecipeDetail.css';
 
 function RecipeDetail() {
@@ -57,7 +56,7 @@ function RecipeDetail() {
     try {
       setEstimatingCalories(true);
       setCalorieError(null);
-      await api.post(`/recipes/${id}/estimate-calories`);
+      await recipeAPI.estimateCalories(id);
 
       // Reload the recipe to get updated calorie data
       const updatedRecipe = await recipeAPI.getById(id);
