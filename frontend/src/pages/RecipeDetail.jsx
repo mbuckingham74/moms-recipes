@@ -57,7 +57,7 @@ function RecipeDetail() {
     try {
       setEstimatingCalories(true);
       setCalorieError(null);
-      const response = await api.post(`/recipes/${id}/estimate-calories`);
+      await api.post(`/recipes/${id}/estimate-calories`);
 
       // Reload the recipe to get updated calorie data
       const updatedRecipe = await recipeAPI.getById(id);
