@@ -7,7 +7,11 @@ import '../../styles/Dashboard.css';
 function Dashboard() {
   const [stats, setStats] = useState({
     totalRecipes: 0,
-    pendingRecipes: 0
+    pendingRecipes: 0,
+    categoriesCount: 0,
+    recentRecipes: 0,
+    avgCalories: 0,
+    recipesWithCalories: 0
   });
   const [pendingRecipes, setPendingRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,19 +29,13 @@ function Dashboard() {
       setLoading(true);
       setError('');
 
-      // Load recipes count
-      const recipesResponse = await api.get('/recipes');
-      const totalRecipes = recipesResponse.data?.recipes?.length || 0;
+      // Load dashboard statistics from backend
+      const statsResponse = await api.get('/admin/stats');
+      setStats(statsResponse.data);
 
       // Load pending recipes
       const pendingResponse = await api.get('/admin/pending-recipes');
       const pending = pendingResponse.data?.data || [];
-
-      setStats({
-        totalRecipes,
-        pendingRecipes: pending.length
-      });
-
       setPendingRecipes(pending.slice(0, 5)); // Show only 5 most recent
     } catch (err) {
       setError('Failed to load dashboard data');
@@ -70,20 +68,44 @@ function Dashboard() {
 
       {error && <div className="error-message">{error}</div>}
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">📚</div>
-          <div className="stat-content">
-            <h3>{stats.totalRecipes}</h3>
-            <p>Total Recipes</p>
+      <div className="metrics-panel">
+        <h2 className="panel-title">Dashboard Metrics</h2>
+        <div className="metrics-grid">
+          <div className="metric-item">
+            <div className="metric-value">{stats.totalRecipes}</div>
+            <div className="metric-label">Total Recipes</div>
           </div>
-        </div>
 
-        <div className="stat-card highlight">
-          <div className="stat-icon">⏳</div>
-          <div className="stat-content">
-            <h3>{stats.pendingRecipes}</h3>
-            <p>Pending Reviews</p>
+          <div className="metric-item highlight">
+            <div className="metric-value">{stats.pendingRecipes}</div>
+            <div className="metric-label">Pending Reviews</div>
+          </div>
+
+          <div className="metric-item">
+            <div className="metric-value">{stats.categoriesCount}</div>
+            <div className="metric-label">Categories</div>
+          </div>
+
+          <div className="metric-item">
+            <div className="metric-value">{stats.recentRecipes}</div>
+            <div className="metric-label">Added This Week</div>
+          </div>
+
+          <div className="metric-item">
+            <div className="metric-value">
+              {stats.avgCalories > 0 ? `~${Math.round(stats.avgCalories)}` : 'N/A'}
+            </div>
+            <div className="metric-label">Avg Calories/Serving</div>
+          </div>
+
+          <div className="metric-item">
+            <div className="metric-value">
+              {stats.totalRecipes > 0
+                ? `${Math.round((stats.recipesWithCalories / stats.totalRecipes) * 100)}%`
+                : '0%'
+              }
+            </div>
+            <div className="metric-label">With Calorie Data</div>
           </div>
         </div>
       </div>

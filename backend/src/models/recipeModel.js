@@ -517,6 +517,70 @@ class RecipeModel {
     const result = await db.prepare('SELECT COUNT(*) as count FROM recipes').get();
     return result.count;
   }
+
+  // Update calorie information for a recipe
+  static async updateCalories(id, { estimatedCalories, caloriesConfidence }) {
+    const stmt = db.prepare(`
+      UPDATE recipes
+      SET estimated_calories = ?, calories_confidence = ?, updated_at = ${getCurrentTimestamp()}
+      WHERE id = ?
+    `);
+    await stmt.run(estimatedCalories, caloriesConfidence, id);
+    return this.getById(id);
+  }
+
+  // Get dashboard statistics
+  static async getDashboardStats() {
+    // Get total recipes count
+    const totalRecipesResult = await db.prepare('SELECT COUNT(*) as count FROM recipes').get();
+    const totalRecipes = totalRecipesResult.count;
+
+    // Get pending recipes count
+    const pendingRecipesResult = await db.prepare('SELECT COUNT(*) as count FROM pending_recipes').get();
+    const pendingRecipes = pendingRecipesResult.count;
+
+    // Get categories (distinct tags) count
+    const categoriesResult = await db.prepare(`
+      SELECT COUNT(DISTINCT t.name) as count
+      FROM tags t
+      INNER JOIN recipe_tags rt ON t.id = rt.tag_id
+    `).get();
+    const categoriesCount = categoriesResult.count;
+
+    // Get recent recipes (added this week)
+    const oneWeekAgo = Math.floor(Date.now() / 1000) - (7 * 24 * 60 * 60);
+    const recentRecipesResult = await db.prepare(`
+      SELECT COUNT(*) as count
+      FROM recipes
+      WHERE date_added >= ?
+    `).get(oneWeekAgo);
+    const recentRecipes = recentRecipesResult.count;
+
+    // Get average calories (only from recipes with calorie data)
+    const avgCaloriesResult = await db.prepare(`
+      SELECT AVG(estimated_calories) as avg
+      FROM recipes
+      WHERE estimated_calories IS NOT NULL
+    `).get();
+    const avgCalories = avgCaloriesResult.avg || 0;
+
+    // Get count of recipes with calorie data
+    const recipesWithCaloriesResult = await db.prepare(`
+      SELECT COUNT(*) as count
+      FROM recipes
+      WHERE estimated_calories IS NOT NULL
+    `).get();
+    const recipesWithCalories = recipesWithCaloriesResult.count;
+
+    return {
+      totalRecipes,
+      pendingRecipes,
+      categoriesCount,
+      recentRecipes,
+      avgCalories: Math.round(avgCalories),
+      recipesWithCalories
+    };
+  }
 }
 
 module.exports = RecipeModel;

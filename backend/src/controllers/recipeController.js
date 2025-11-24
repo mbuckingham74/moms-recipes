@@ -301,6 +301,95 @@ class RecipeController {
     const tags = await RecipeModel.getAllTags();
     res.json({ tags: tags.map(t => t.name) });
   });
+
+  // Get dashboard statistics
+  static getDashboardStats = asyncHandler(async (req, res) => {
+    const stats = await RecipeModel.getDashboardStats();
+    res.json(stats);
+  });
+
+  // Estimate calories for a recipe using Anthropic API
+  static estimateCalories = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const recipe = await RecipeModel.getById(id);
+    if (!recipe) {
+      throw new ApiError(404, 'Recipe not found');
+    }
+
+    // Import the Anthropic SDK
+    const Anthropic = require('@anthropic-ai/sdk');
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+
+    if (!apiKey) {
+      throw new ApiError(500, 'Anthropic API key not configured');
+    }
+
+    const client = new Anthropic({ apiKey });
+
+    // Build the prompt for calorie estimation
+    const ingredientsList = recipe.ingredients
+      .map(ing => `${ing.quantity || ''} ${ing.unit || ''} ${ing.name}`.trim())
+      .join('\n');
+
+    const prompt = `Analyze this recipe and estimate the calories per serving.
+
+Recipe: ${recipe.title}
+${recipe.servings ? `Servings: ${recipe.servings}` : ''}
+
+Ingredients:
+${ingredientsList}
+
+${recipe.instructions ? `Instructions:\n${recipe.instructions.substring(0, 500)}` : ''}
+
+Please provide:
+1. Estimated calories per serving (just the number)
+2. Confidence level (low, medium, or high)
+3. Brief explanation of your estimate
+
+Format your response as JSON:
+{
+  "calories": <number>,
+  "confidence": "<low|medium|high>",
+  "explanation": "<brief explanation>"
+}`;
+
+    try {
+      const message = await client.messages.create({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      });
+
+      // Parse the response
+      const responseText = message.content[0].text;
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        throw new Error('Could not parse AI response');
+      }
+
+      const estimation = JSON.parse(jsonMatch[0]);
+
+      // Update the recipe with the estimation
+      await RecipeModel.updateCalories(id, {
+        estimatedCalories: Math.round(estimation.calories),
+        caloriesConfidence: estimation.confidence
+      });
+
+      res.json({
+        estimatedCalories: Math.round(estimation.calories),
+        confidence: estimation.confidence,
+        explanation: estimation.explanation
+      });
+    } catch (error) {
+      console.error('Calorie estimation error:', error);
+      throw new ApiError(500, 'Failed to estimate calories: ' + error.message);
+    }
+  });
 }
 
 module.exports = RecipeController;

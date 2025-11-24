@@ -2,15 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { recipeAPI } from '../services/api';
 import { getTagClass, formatDate } from '../utils/recipeHelpers';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
 import './RecipeDetail.css';
 
 function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [estimatingCalories, setEstimatingCalories] = useState(false);
+  const [calorieError, setCalorieError] = useState(null);
 
   const loadRecipe = useCallback(async (signal) => {
     try {
@@ -45,6 +50,23 @@ function RecipeDetail() {
     } catch (err) {
       setError('Failed to delete recipe. Please try again.');
       console.error('Error deleting recipe:', err);
+    }
+  };
+
+  const handleEstimateCalories = async () => {
+    try {
+      setEstimatingCalories(true);
+      setCalorieError(null);
+      const response = await api.post(`/recipes/${id}/estimate-calories`);
+
+      // Reload the recipe to get updated calorie data
+      const updatedRecipe = await recipeAPI.getById(id);
+      setRecipe(updatedRecipe.data.recipe);
+    } catch (err) {
+      setCalorieError(err.response?.data?.message || 'Failed to estimate calories');
+      console.error('Error estimating calories:', err);
+    } finally {
+      setEstimatingCalories(false);
     }
   };
 
@@ -115,6 +137,54 @@ function RecipeDetail() {
         {recipe.imagePath && (
           <div className="recipe-image-large">
             <img src={recipe.imagePath} alt={recipe.title} />
+          </div>
+        )}
+
+        {/* Calorie Information Section */}
+        {(recipe.estimatedCalories || isAdmin()) && (
+          <div className="recipe-section calorie-section">
+            <h2>Nutritional Information</h2>
+            {recipe.estimatedCalories ? (
+              <div className="calorie-info">
+                <div className="calorie-display">
+                  <span className="calorie-value">~{recipe.estimatedCalories}</span>
+                  <span className="calorie-label">calories per serving</span>
+                  {recipe.caloriesConfidence && (
+                    <span className={`confidence-badge confidence-${recipe.caloriesConfidence}`}>
+                      {recipe.caloriesConfidence} confidence
+                    </span>
+                  )}
+                </div>
+                <p className="calorie-disclaimer">
+                  ⓘ AI-estimated based on ingredients. Actual values may vary.
+                </p>
+                {isAdmin() && (
+                  <button
+                    onClick={handleEstimateCalories}
+                    disabled={estimatingCalories}
+                    className="btn btn-small btn-outline"
+                  >
+                    {estimatingCalories ? 'Re-estimating...' : 'Re-estimate Calories'}
+                  </button>
+                )}
+              </div>
+            ) : (
+              isAdmin() && (
+                <div className="calorie-estimate-prompt">
+                  <p>No calorie information available for this recipe.</p>
+                  <button
+                    onClick={handleEstimateCalories}
+                    disabled={estimatingCalories}
+                    className="btn btn-primary"
+                  >
+                    {estimatingCalories ? 'Estimating...' : 'Estimate Calories with AI'}
+                  </button>
+                </div>
+              )
+            )}
+            {calorieError && (
+              <div className="error-message">{calorieError}</div>
+            )}
           </div>
         )}
 

@@ -13,6 +13,10 @@ router.get('/recipes/:id', RecipeController.getRecipeById);
 router.post('/recipes', authenticate, requireAdmin, RecipeController.createRecipe);
 router.put('/recipes/:id', authenticate, requireAdmin, RecipeController.updateRecipe);
 router.delete('/recipes/:id', authenticate, requireAdmin, RecipeController.deleteRecipe);
+router.post('/recipes/:id/estimate-calories', authenticate, requireAdmin, RecipeController.estimateCalories);
+
+// Dashboard stats (admin-only)
+router.get('/admin/stats', authenticate, requireAdmin, RecipeController.getDashboardStats);
 
 // Tags
 router.get('/tags', RecipeController.getAllTags);
