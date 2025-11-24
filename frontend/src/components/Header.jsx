@@ -1,9 +1,13 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './Header.css';
 
 function Header() {
   const { user, isAdmin } = useAuth();
+  const location = useLocation();
+
+  // Check if current page is admin dashboard or any admin page
+  const isOnAdminPage = location.pathname.startsWith('/admin');
 
   return (
     <header className="header">
@@ -15,7 +19,7 @@ function Header() {
           <Link to="/">Browse</Link>
           <Link to="/add">Add Recipe</Link>
           {!user && <Link to="/login">Admin Login</Link>}
-          {isAdmin() && <Link to="/admin">Admin Dashboard</Link>}
+          {isAdmin() && !isOnAdminPage && <Link to="/admin">Admin Dashboard</Link>}
         </nav>
       </div>
     </header>
