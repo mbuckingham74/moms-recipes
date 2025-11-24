@@ -23,7 +23,7 @@ This document describes the AI-powered calorie estimation feature added to Mom's
 - Metrics displayed in a grid layout with responsive design
 
 ### 2. AI Calorie Estimation
-**Technology:** Anthropic Claude API (claude-3-5-sonnet-20241022)
+**Technology:** Anthropic Claude API (claude-sonnet-4-5-20250929)
 
 **How it works:**
 1. Admin clicks "Estimate Calories with AI" button on recipe detail page
