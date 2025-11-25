@@ -549,7 +549,7 @@ ADMIN1_PASSWORD=your-secure-password
 ADMIN1_EMAIL=your-email@example.com
 
 # Production CORS (required in production)
-# FRONTEND_URL=https://moms-recipes.tachyonfuture.com
+# FRONTEND_URL=https://moms-recipes.example.com
 ```
 
 **Security:** See [SECURITY_GUIDELINES.md](SECURITY_GUIDELINES.md) for credential management best practices.
