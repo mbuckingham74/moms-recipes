@@ -10,7 +10,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Jest](https://img.shields.io/badge/Jest-80%25%20coverage-C21325?logo=jest&logoColor=white)
 
-AI-powered full-stack recipe management system with React 19, Node.js/Express, MySQL 8, Claude AI for PDF parsing & URL import, Docker deployment, and 80% test coverage.
+AI-powered full-stack recipe management system with React 19, Node.js/Express, MySQL 8, multi-provider AI support (Claude, GPT-4, Gemini) for PDF parsing & URL import, Docker deployment, and 80% test coverage.
 
 **🌐 Live Demo:** [https://moms-recipes.tachyonfuture.com](https://moms-recipes.tachyonfuture.com)
 
@@ -46,9 +46,10 @@ AI-powered full-stack recipe management system with React 19, Node.js/Express, M
 ### Admin Features 🔐
 - **Authentication**: Secure JWT-based login with httpOnly cookies
 - **Persistent Admin Sidebar**: Quick Actions navigation visible on all admin pages
-  - Dashboard, Upload PDF, Import from URL, Add Recipe, Review Pending, All Recipes
+  - Dashboard, Upload PDF, Import from URL, Add Recipe, Review Pending, All Recipes, AI Settings
   - Responsive design (collapses on mobile)
 - **Admin Dashboard**: View stats and metrics (clickable cards for navigation)
+  - AI status panel showing current provider and model
 - **Admin Recipes Table**: Sortable table view of all recipes with:
   - Name (clickable link to recipe)
   - Category (first tag)
@@ -56,9 +57,16 @@ AI-powered full-stack recipe management system with React 19, Node.js/Express, M
   - Calories per Serving
   - Date Added
   - Times Cooked (for tracking cooking history)
-- **PDF Recipe Upload**: AI-powered recipe parsing with Anthropic Claude
+- **AI Settings**: Configure AI provider for recipe parsing and calorie estimation
+  - **Multi-provider support**: Anthropic Claude, OpenAI GPT-4, Google Gemini
+  - **Model selection**: Choose from multiple models per provider (e.g., Claude Sonnet 4.5, GPT-4o, Gemini 1.5 Pro)
+  - **API key management**: Store keys securely (AES-256 encrypted) or use environment variables
+  - **Connection testing**: Verify API key works before saving
+  - **Per-provider key storage**: Each provider has its own stored key, allowing easy switching
+- **PDF Recipe Upload**: AI-powered recipe parsing
   - Upload PDF recipes (text-based PDFs supported)
   - Automatic extraction of title, ingredients, instructions, and tags
+  - Works with any configured AI provider
   - Review and edit before publishing
 - **URL Recipe Import**: Import recipes from any website
   - Paste a recipe URL and automatically extract recipe data
@@ -77,7 +85,9 @@ AI-powered full-stack recipe management system with React 19, Node.js/Express, M
 - **Database**: MySQL 8 (all environments)
 - **Authentication**: JWT + bcrypt with httpOnly cookies
 - **Security**: CSRF protection on state-changing routes
-- **AI Integration**: Anthropic Claude for recipe parsing (optional)
+- **AI Integration**: Multi-provider support (Anthropic Claude, OpenAI, Google Gemini)
+  - Configurable via Admin Panel or environment variables
+  - Encrypted API key storage in database
 - **File Processing**: Multer + pdf-parse for PDF uploads
 - **Testing**: Jest + Supertest (80% coverage)
 - **Features**: CORS, validation, error handling, async/await
@@ -188,6 +198,15 @@ moms-recipes/
 
 **pending_ingredients** & **pending_tags**
 - Temporary storage for PDF-parsed recipes awaiting approval
+
+### Configuration Tables
+
+**settings** (key-value store for app configuration)
+- `setting_key` (PRIMARY KEY, VARCHAR)
+- `setting_value` (TEXT)
+- `encrypted` (BOOLEAN) - API keys are AES-256 encrypted
+- `updated_at` (INTEGER, Unix timestamp)
+- `updated_by` (FOREIGN KEY to users)
 
 ## Quick Start
 
@@ -540,8 +559,11 @@ JWT_SECRET=your-secret-key-change-in-production-min-32-chars
 # CSRF Protection (required in production)
 CSRF_SECRET=your-csrf-secret-change-in-production
 
-# Anthropic API (optional - AI features disabled if not set)
+# AI Provider API Keys (optional - configure via Admin Panel or env vars)
+# At least one is required for AI features (PDF parsing, calorie estimation)
 ANTHROPIC_API_KEY=your-anthropic-api-key-here
+OPENAI_API_KEY=your-openai-api-key-here
+GOOGLE_API_KEY=your-google-api-key-here
 
 # Admin Users (for seed script)
 ADMIN1_USERNAME=your-admin-username
@@ -567,4 +589,8 @@ ADMIN1_EMAIL=your-email@example.com
 
 | Variable | Description |
 |----------|-------------|
-| `ANTHROPIC_API_KEY` | Enables AI features (PDF parsing, calorie estimation) |
+| `ANTHROPIC_API_KEY` | API key for Anthropic Claude (AI features) |
+| `OPENAI_API_KEY` | API key for OpenAI GPT-4 (AI features) |
+| `GOOGLE_API_KEY` | API key for Google Gemini (AI features) |
+
+**Note:** At least one AI provider API key is required to enable AI features. Keys can also be configured via the Admin Panel (stored encrypted in the database).

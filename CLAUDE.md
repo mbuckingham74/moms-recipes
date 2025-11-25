@@ -2,14 +2,16 @@
 
 This file contains important instructions for Claude Code when working on this project.
 
-## Claude API Model
+## AI Service (Multi-Provider)
 
-**IMPORTANT: The correct Claude model ID is `claude-sonnet-4-5-20250929`**
+The app supports multiple AI providers: **Anthropic Claude**, **OpenAI GPT-4**, and **Google Gemini**.
 
-- Do NOT use `claude-3-5-sonnet-*` - this is invalid/deprecated
-- Do NOT use `claude-3-5-sonnet-20241022` - this does not exist
-- All AI calls must go through `backend/src/services/claudeService.js` which has the correct model configured
-- Never instantiate Anthropic client directly in controllers - always use ClaudeService
+- All AI calls must go through `backend/src/services/aiService.js` (provider-agnostic)
+- Never instantiate AI provider clients directly in controllers - always use AIService
+- Provider and model are configurable via Admin Panel or database settings
+- API keys can be set via environment variables OR stored encrypted in the database
+- The default Claude model ID is `claude-sonnet-4-5-20250929`
+- Do NOT use deprecated model IDs like `claude-3-5-sonnet-*`
 
 ## Database
 
@@ -23,4 +25,11 @@ This file contains important instructions for Claude Code when working on this p
 - `JWT_SECRET` - Must be at least 32 characters
 - `CSRF_SECRET` - Required for CSRF protection
 - `FRONTEND_URL` - For CORS configuration
-- `ANTHROPIC_API_KEY` - Optional, enables AI features
+
+### AI Provider Keys (Optional - at least one needed for AI features)
+
+- `ANTHROPIC_API_KEY` - For Claude models
+- `OPENAI_API_KEY` - For GPT-4 models
+- `GOOGLE_API_KEY` - For Gemini models
+
+Note: API keys can also be configured via the Admin Panel (stored encrypted in database).
