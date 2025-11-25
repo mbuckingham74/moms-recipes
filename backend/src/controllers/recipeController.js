@@ -308,7 +308,7 @@ class RecipeController {
     res.json(stats);
   });
 
-  // Estimate calories for a recipe using Anthropic API
+  // Estimate calories for a recipe using Claude AI
   static estimateCalories = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -317,73 +317,26 @@ class RecipeController {
       throw new ApiError(404, 'Recipe not found');
     }
 
-    // Import the Anthropic SDK
-    const Anthropic = require('@anthropic-ai/sdk');
-    const apiKey = process.env.ANTHROPIC_API_KEY;
+    // Use ClaudeService for AI features
+    const ClaudeService = require('../services/claudeService');
 
-    if (!apiKey) {
-      throw new ApiError(500, 'Anthropic API key not configured');
+    if (!ClaudeService.isAvailable()) {
+      throw new ApiError(503, 'AI features are not available. ANTHROPIC_API_KEY is not configured.');
     }
 
-    const client = new Anthropic({ apiKey });
-
-    // Build the prompt for calorie estimation
-    const ingredientsList = recipe.ingredients
-      .map(ing => `${ing.quantity || ''} ${ing.unit || ''} ${ing.name}`.trim())
-      .join('\n');
-
-    const prompt = `Analyze this recipe and estimate the calories per serving.
-
-Recipe: ${recipe.title}
-${recipe.servings ? `Servings: ${recipe.servings}` : ''}
-
-Ingredients:
-${ingredientsList}
-
-${recipe.instructions ? `Instructions:\n${recipe.instructions.substring(0, 500)}` : ''}
-
-Please provide:
-1. Estimated calories per serving (just the number)
-2. Confidence level (low, medium, or high)
-3. Brief explanation of your estimate
-
-Format your response as JSON:
-{
-  "calories": <number>,
-  "confidence": "<low|medium|high>",
-  "explanation": "<brief explanation>"
-}`;
-
     try {
-      const message = await client.messages.create({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: prompt
-        }]
-      });
-
-      // Parse the response
-      const responseText = message.content[0].text;
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-
-      if (!jsonMatch) {
-        throw new Error('Could not parse AI response');
-      }
-
-      const estimation = JSON.parse(jsonMatch[0]);
+      const estimation = await ClaudeService.estimateCalories(recipe);
 
       // Update the recipe with the estimation
       await RecipeModel.updateCalories(id, {
-        estimatedCalories: Math.round(estimation.calories),
-        caloriesConfidence: estimation.confidence
+        estimatedCalories: Math.round(estimation.estimated_calories),
+        caloriesConfidence: estimation.calories_confidence
       });
 
       res.json({
-        estimatedCalories: Math.round(estimation.calories),
-        confidence: estimation.confidence,
-        explanation: estimation.explanation
+        estimatedCalories: Math.round(estimation.estimated_calories),
+        confidence: estimation.calories_confidence,
+        explanation: estimation.reasoning
       });
     } catch (error) {
       console.error('Calorie estimation error:', error);

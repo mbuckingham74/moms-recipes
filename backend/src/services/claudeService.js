@@ -1,6 +1,5 @@
-// Default model - using Claude 3.5 Sonnet which is currently available
-// See https://docs.anthropic.com/en/docs/models-overview for current model IDs
-const DEFAULT_MODEL = 'claude-3-5-sonnet-20241022';
+// Default model - Claude Sonnet 4.5
+const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
 
 // Check if Claude API is available
 const isClaudeAvailable = () => {
