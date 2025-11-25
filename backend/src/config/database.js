@@ -295,6 +295,27 @@ const initDatabase = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Recipe images table (hero and additional gallery images)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS recipe_images (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        recipe_id INT NOT NULL,
+        filename VARCHAR(255) NOT NULL,
+        original_name VARCHAR(255) NOT NULL,
+        file_path VARCHAR(500) NOT NULL,
+        file_size INT NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        is_hero BOOLEAN NOT NULL DEFAULT FALSE,
+        position INT NOT NULL DEFAULT 0,
+        uploaded_by INT,
+        uploaded_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+        FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL,
+        INDEX idx_recipe_images_recipe_id (recipe_id),
+        INDEX idx_recipe_images_is_hero (is_hero)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     // Add email index on users table if not exists
     const [emailIndex] = await connection.query(`
       SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
@@ -425,6 +446,7 @@ const clearDatabase = async () => {
   await pool.execute('DELETE FROM pending_recipes');
   await pool.execute('DELETE FROM uploaded_files');
   await pool.execute('DELETE FROM recipe_tags');
+  await pool.execute('DELETE FROM recipe_images');
   await pool.execute('DELETE FROM ingredients');
   await pool.execute('DELETE FROM tags');
   await pool.execute('DELETE FROM recipes');

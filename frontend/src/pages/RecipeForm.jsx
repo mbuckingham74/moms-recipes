@@ -1,12 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { recipeAPI } from '../services/api';
 import './RecipeForm.css';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 function RecipeForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditMode = Boolean(id);
+  const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -28,6 +31,11 @@ function RecipeForm() {
   const [error, setError] = useState(null);
   const [loadingRecipe, setLoadingRecipe] = useState(isEditMode);
 
+  // Image management state
+  const [images, setImages] = useState([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [imageError, setImageError] = useState(null);
+
   const loadRecipe = useCallback(async (signal) => {
     try {
       setLoadingRecipe(true);
@@ -42,6 +50,8 @@ function RecipeForm() {
           ingredients: recipe.ingredients || [],
           tags: recipe.tags || [],
         });
+        // Set images from recipe
+        setImages(recipe.images || []);
       }
     } catch (err) {
       if (!signal?.aborted) {
@@ -120,6 +130,72 @@ function RecipeForm() {
     }));
   };
 
+  // Image upload handlers
+  const handleImageUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Must be in edit mode to upload images
+    if (!isEditMode) {
+      setImageError('Please save the recipe first before adding images.');
+      return;
+    }
+
+    setUploadingImages(true);
+    setImageError(null);
+
+    try {
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append('images', files[i]);
+      }
+      // Set first image as hero if no images exist
+      if (images.length === 0) {
+        formData.append('isHero', 'true');
+      }
+
+      const response = await recipeAPI.uploadImages(id, formData);
+      setImages((prev) => [...prev, ...response.data.images]);
+    } catch (err) {
+      setImageError(err.response?.data?.error || 'Failed to upload images');
+      console.error('Error uploading images:', err);
+    } finally {
+      setUploadingImages(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleSetHeroImage = async (imageId) => {
+    try {
+      await recipeAPI.setHeroImage(id, imageId);
+      // Update local state
+      setImages((prev) =>
+        prev.map((img) => ({
+          ...img,
+          isHero: img.id === imageId,
+        }))
+      );
+    } catch (err) {
+      setImageError(err.response?.data?.error || 'Failed to set hero image');
+      console.error('Error setting hero image:', err);
+    }
+  };
+
+  const handleDeleteImage = async (imageId) => {
+    if (!window.confirm('Are you sure you want to delete this image?')) return;
+
+    try {
+      await recipeAPI.deleteImage(id, imageId);
+      setImages((prev) => prev.filter((img) => img.id !== imageId));
+    } catch (err) {
+      setImageError(err.response?.data?.error || 'Failed to delete image');
+      console.error('Error deleting image:', err);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -153,6 +229,11 @@ function RecipeForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Get image URL for display
+  const getImageUrl = (image) => {
+    return `${API_BASE_URL}/uploads/images/${image.filename}`;
   };
 
   if (loadingRecipe) {
@@ -209,18 +290,88 @@ function RecipeForm() {
                 placeholder="e.g., Grandma's cookbook"
               />
             </div>
+          </div>
 
-            <div className="form-group">
-              <label htmlFor="imagePath">Image Path</label>
-              <input
-                type="text"
-                id="imagePath"
-                name="imagePath"
-                value={formData.imagePath}
-                onChange={handleChange}
-                placeholder="/uploads/recipe.jpg"
-              />
-            </div>
+          {/* Recipe Images Section */}
+          <div className="form-section">
+            <h2>Recipe Images</h2>
+            <p className="form-hint">
+              {isEditMode
+                ? 'Upload images for your recipe. The hero image will be displayed on recipe cards.'
+                : 'Save the recipe first, then you can add images.'}
+            </p>
+
+            {imageError && (
+              <div className="error-message" style={{ marginBottom: '1rem' }}>
+                <p>{imageError}</p>
+              </div>
+            )}
+
+            {isEditMode && (
+              <>
+                <div className="image-upload-area">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    id="imageUpload"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    multiple
+                    onChange={handleImageUpload}
+                    disabled={uploadingImages}
+                    className="file-input"
+                  />
+                  <label htmlFor="imageUpload" className="file-label">
+                    {uploadingImages ? (
+                      <>
+                        <span className="spinner-small"></span>
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <span className="upload-icon">📷</span>
+                        Click to upload images
+                      </>
+                    )}
+                  </label>
+                  <p className="file-hint">JPEG, PNG, GIF, or WebP (max 5MB each)</p>
+                </div>
+
+                {images.length > 0 && (
+                  <div className="image-gallery">
+                    {images.map((image) => (
+                      <div
+                        key={image.id}
+                        className={`image-item ${image.isHero ? 'is-hero' : ''}`}
+                      >
+                        <img src={getImageUrl(image)} alt={image.originalName} />
+                        <div className="image-overlay">
+                          {image.isHero ? (
+                            <span className="hero-badge">Hero</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetHeroImage(image.id)}
+                              className="btn-image-action"
+                              title="Set as hero image"
+                            >
+                              Set Hero
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteImage(image.id)}
+                            className="btn-image-delete"
+                            title="Delete image"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div className="form-section">
