@@ -1,6 +1,95 @@
 const cheerio = require('cheerio');
+const dns = require('dns').promises;
+
+// Maximum response size (5MB should be plenty for any recipe page)
+const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
+// Request timeout in milliseconds
+const REQUEST_TIMEOUT = 15000;
+
+// Private/internal IP ranges that should be blocked (SSRF protection)
+const BLOCKED_IP_RANGES = [
+  /^127\./,                    // Loopback
+  /^10\./,                     // Private Class A
+  /^172\.(1[6-9]|2[0-9]|3[01])\./, // Private Class B
+  /^192\.168\./,               // Private Class C
+  /^169\.254\./,               // Link-local
+  /^0\./,                      // Current network
+  /^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\./, // Carrier-grade NAT
+  /^::1$/,                     // IPv6 loopback
+  /^fe80:/i,                   // IPv6 link-local
+  /^fc00:/i,                   // IPv6 unique local
+  /^fd/i,                      // IPv6 unique local
+];
+
+// Blocked hostnames
+const BLOCKED_HOSTNAMES = [
+  'localhost',
+  'metadata.google.internal',  // GCP metadata
+  'metadata',
+  '169.254.169.254',           // AWS/cloud metadata endpoint
+];
 
 class UrlScraper {
+  /**
+   * Check if an IP address is in a private/blocked range
+   * @param {string} ip - IP address to check
+   * @returns {boolean} - True if blocked
+   */
+  static isBlockedIp(ip) {
+    return BLOCKED_IP_RANGES.some(pattern => pattern.test(ip));
+  }
+
+  /**
+   * Check if a hostname is blocked
+   * @param {string} hostname - Hostname to check
+   * @returns {boolean} - True if blocked
+   */
+  static isBlockedHostname(hostname) {
+    const lower = hostname.toLowerCase();
+    return BLOCKED_HOSTNAMES.includes(lower) ||
+           lower.endsWith('.internal') ||
+           lower.endsWith('.local');
+  }
+
+  /**
+   * Resolve hostname and check if it points to a blocked IP
+   * @param {string} hostname - Hostname to resolve
+   * @returns {Promise<void>} - Throws if blocked
+   */
+  static async validateHostname(hostname) {
+    // Check blocked hostnames first
+    if (this.isBlockedHostname(hostname)) {
+      throw new Error('Access to internal/private hosts is not allowed.');
+    }
+
+    // Check if hostname is already an IP address
+    if (/^[\d.]+$/.test(hostname) || hostname.includes(':')) {
+      if (this.isBlockedIp(hostname)) {
+        throw new Error('Access to private/internal IP addresses is not allowed.');
+      }
+      return;
+    }
+
+    // Resolve hostname to IP and check
+    try {
+      const addresses = await dns.resolve4(hostname);
+      for (const ip of addresses) {
+        if (this.isBlockedIp(ip)) {
+          throw new Error('This URL resolves to a private/internal IP address and cannot be accessed.');
+        }
+      }
+    } catch (err) {
+      if (err.code === 'ENOTFOUND') {
+        throw new Error('Could not resolve hostname. Please check the URL.');
+      }
+      // For other DNS errors, check if the error is about blocked IPs
+      if (err.message.includes('private') || err.message.includes('internal')) {
+        throw err;
+      }
+      // Otherwise continue - let fetch handle it
+    }
+  }
+
   /**
    * Fetch and extract recipe content from a URL
    * @param {string} url - The URL to scrape
@@ -18,6 +107,13 @@ class UrlScraper {
       throw new Error('Invalid URL. Please provide a valid HTTP or HTTPS URL.');
     }
 
+    // SSRF protection: validate hostname doesn't resolve to internal/private IPs
+    await this.validateHostname(parsedUrl.hostname);
+
+    // Set up abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
     // Fetch the page
     let response;
     try {
@@ -28,20 +124,37 @@ class UrlScraper {
           'Accept-Language': 'en-US,en;q=0.5',
         },
         redirect: 'follow',
-        timeout: 15000,
+        signal: controller.signal,
       });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (err) {
-      if (err.name === 'AbortError' || err.message.includes('timeout')) {
+      if (err.name === 'AbortError') {
         throw new Error('Request timed out. The website took too long to respond.');
       }
       throw new Error(`Failed to fetch URL: ${err.message}`);
+    } finally {
+      clearTimeout(timeoutId);
     }
 
-    const html = await response.text();
+    // Validate content-type is HTML-like
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('text/html') &&
+        !contentType.includes('application/xhtml') &&
+        !contentType.includes('text/plain')) {
+      throw new Error('URL does not point to an HTML page. Please provide a link to a recipe webpage.');
+    }
+
+    // Check content-length if provided
+    const contentLength = response.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > MAX_RESPONSE_SIZE) {
+      throw new Error('Page is too large to process. Please try a different URL.');
+    }
+
+    // Read response with size limit
+    const html = await this.readResponseWithLimit(response, MAX_RESPONSE_SIZE);
     const $ = cheerio.load(html);
 
     // Try to extract structured recipe data (JSON-LD)
@@ -63,6 +176,46 @@ class UrlScraper {
       hostname: parsedUrl.hostname,
       data: pageContent,
     };
+  }
+
+  /**
+   * Read response body with a size limit to prevent memory exhaustion
+   * @param {Response} response - Fetch response object
+   * @param {number} maxSize - Maximum allowed size in bytes
+   * @returns {Promise<string>} - Response body as text
+   */
+  static async readResponseWithLimit(response, maxSize) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let totalSize = 0;
+    let chunks = [];
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        totalSize += value.length;
+        if (totalSize > maxSize) {
+          reader.cancel();
+          throw new Error('Page is too large to process. Please try a different URL.');
+        }
+
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    // Combine chunks and decode
+    const allChunks = new Uint8Array(totalSize);
+    let position = 0;
+    for (const chunk of chunks) {
+      allChunks.set(chunk, position);
+      position += chunk.length;
+    }
+
+    return decoder.decode(allChunks);
   }
 
   /**
