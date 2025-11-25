@@ -2,7 +2,7 @@ const path = require('path');
 const FileModel = require('../models/fileModel');
 const PendingRecipeModel = require('../models/pendingRecipeModel');
 const PDFParser = require('../services/pdfParser');
-const ClaudeService = require('../services/claudeService');
+const AIService = require('../services/aiService');
 const UrlScraper = require('../services/urlScraper');
 const { ApiError, asyncHandler } = require('../middleware/errorHandler');
 
@@ -54,8 +54,8 @@ exports.uploadAndParse = asyncHandler(async (req, res) => {
       console.warn(`Warning: PDF text extraction yielded very short text (${rawText.length} chars) for file: ${file.originalname}`);
     }
 
-    // 3. Parse recipe with Claude
-    const parsedRecipe = await ClaudeService.parseRecipe(rawText);
+    // 3. Parse recipe with AI
+    const parsedRecipe = await AIService.parseRecipe(rawText);
 
     // 4. Save as pending recipe
     const pendingRecipeId = await PendingRecipeModel.create({
@@ -206,9 +206,9 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
       parsedRecipe = scraped.data;
       rawText = JSON.stringify(scraped.data, null, 2);
     } else {
-      // Unstructured - need Claude to parse it
+      // Unstructured - need AI to parse it
       rawText = `URL: ${scraped.source}\nTitle: ${scraped.data.title}\n\n${scraped.data.content}`;
-      parsedRecipe = await ClaudeService.parseRecipeFromWebPage(scraped.data, scraped.source);
+      parsedRecipe = await AIService.parseRecipeFromWebPage(scraped.data, scraped.source);
     }
 
     // Ensure source URL is preserved

@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 const recipeRoutes = require('./routes/recipeRoutes');
 const authRoutes = require('./routes/authRoutes');
 const pdfRoutes = require('./routes/pdfRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 const { errorHandler } = require('./middleware/errorHandler');
 const { getCsrfToken } = require('./middleware/csrf');
 
@@ -44,6 +45,7 @@ app.get('/api/csrf-token', getCsrfToken);
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', pdfRoutes);
+app.use('/api/admin/settings', settingsRoutes);
 app.use('/api', recipeRoutes);
 
 // Health check endpoint

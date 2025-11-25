@@ -210,6 +210,18 @@ const initDatabase = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // System settings table (key-value store for configuration)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        setting_key VARCHAR(100) PRIMARY KEY,
+        setting_value TEXT,
+        encrypted BOOLEAN NOT NULL DEFAULT FALSE,
+        updated_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        updated_by INT,
+        FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     console.log('MySQL database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -322,6 +334,7 @@ const clearDatabase = async () => {
   const pool = getPool();
   // Disable foreign key checks temporarily for clean deletion
   await pool.execute('SET FOREIGN_KEY_CHECKS = 0');
+  await pool.execute('DELETE FROM settings');
   await pool.execute('DELETE FROM pending_tags');
   await pool.execute('DELETE FROM pending_ingredients');
   await pool.execute('DELETE FROM pending_recipes');

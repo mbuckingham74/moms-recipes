@@ -73,6 +73,16 @@ function AdminLayout({ children }) {
             <span className="sidebar-text">All Recipes</span>
           </NavLink>
 
+          <div className="sidebar-section-title">Settings</div>
+
+          <NavLink
+            to="/admin/settings/ai"
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+          >
+            <span className="sidebar-icon">🤖</span>
+            <span className="sidebar-text">AI Settings</span>
+          </NavLink>
+
           <NavLink
             to="/"
             className="sidebar-link"

@@ -12,6 +12,7 @@ function Dashboard() {
     avgCalories: 0,
     recipesWithCalories: 0
   });
+  const [aiConfig, setAiConfig] = useState(null);
   const [pendingRecipes, setPendingRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,6 +30,14 @@ function Dashboard() {
       const pendingResponse = await api.get('/admin/pending-recipes');
       const pending = pendingResponse.data?.data || [];
       setPendingRecipes(pending.slice(0, 5)); // Show only 5 most recent
+
+      // Load AI configuration
+      try {
+        const aiResponse = await api.get('/admin/settings/ai');
+        setAiConfig(aiResponse.data.data);
+      } catch {
+        // AI settings may not be accessible, ignore
+      }
     } catch (err) {
       setError('Failed to load dashboard data');
       console.error(err);
@@ -52,6 +61,27 @@ function Dashboard() {
       </div>
 
       {error && <div className="error-message">{error}</div>}
+
+      {/* AI Status Panel */}
+      {aiConfig && (
+        <div className="ai-status-panel">
+          <div className="ai-status-content">
+            <div className="ai-status-info">
+              <span className="ai-status-label">AI Provider:</span>
+              <span className="ai-status-value">{aiConfig.providerName}</span>
+              <span className="ai-status-separator">|</span>
+              <span className="ai-status-label">Model:</span>
+              <span className="ai-status-value">{aiConfig.modelName}</span>
+              <span className={`ai-status-badge ${aiConfig.hasApiKey ? 'status-active' : 'status-inactive'}`}>
+                {aiConfig.hasApiKey ? 'Active' : 'Not Configured'}
+              </span>
+            </div>
+            <Link to="/admin/settings/ai" className="ai-settings-link">
+              Configure
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="metrics-panel">
         <h2 className="panel-title">Dashboard Metrics</h2>

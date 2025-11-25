@@ -348,7 +348,7 @@ class RecipeController {
     });
   });
 
-  // Estimate calories for a recipe using Claude AI
+  // Estimate calories for a recipe using AI
   static estimateCalories = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
@@ -357,15 +357,15 @@ class RecipeController {
       throw new ApiError(404, 'Recipe not found');
     }
 
-    // Use ClaudeService for AI features
-    const ClaudeService = require('../services/claudeService');
+    // Use AIService for AI features
+    const AIService = require('../services/aiService');
 
-    if (!ClaudeService.isAvailable()) {
-      throw new ApiError(503, 'AI features are not available. ANTHROPIC_API_KEY is not configured.');
+    if (!(await AIService.isAvailable())) {
+      throw new ApiError(503, 'AI features are not available. Please configure an API key in Admin Settings.');
     }
 
     try {
-      const estimation = await ClaudeService.estimateCalories(recipe);
+      const estimation = await AIService.estimateCalories(recipe);
 
       // Update the recipe with the estimation
       await RecipeModel.updateCalories(id, {
