@@ -50,6 +50,12 @@ A full-stack recipe organization web application for managing and searching thro
   - Upload PDF recipes (text-based PDFs supported)
   - Automatic extraction of title, ingredients, instructions, and tags
   - Review and edit before publishing
+- **URL Recipe Import**: Import recipes from any website
+  - Paste a recipe URL and automatically extract recipe data
+  - Smart extraction using JSON-LD schema when available (AllRecipes, Food Network, etc.)
+  - AI-powered parsing for sites without structured data
+  - Comprehensive SSRF protection (blocks private IPs, cloud metadata endpoints)
+  - Review and edit before publishing
 - **Manual Recipe Entry**: Traditional form-based recipe creation
 - **Role-based Access**: Admin vs. viewer permissions
 
@@ -259,7 +265,7 @@ GET /api/auth/me
 
 Returns current authenticated user info.
 
-### Admin - PDF Upload
+### Admin - Recipe Import
 
 #### Upload and Parse PDF
 ```http
@@ -271,6 +277,21 @@ pdf: <file>
 ```
 
 Uploads PDF, extracts text, parses with Claude AI, saves as pending recipe.
+
+#### Import Recipe from URL
+```http
+POST /api/admin/import-url
+Content-Type: application/json
+Authorization: Required (admin)
+
+{
+  "url": "https://www.allrecipes.com/recipe/12345/chocolate-chip-cookies/"
+}
+```
+
+Fetches the URL, extracts recipe data (JSON-LD or AI parsing), saves as pending recipe.
+
+**Security:** Includes comprehensive SSRF protection - blocks private IPs (10.x, 172.16-31.x, 192.168.x, 127.x), cloud metadata endpoints (169.254.169.254), IPv6 private ranges, and validates all redirect destinations.
 
 #### Get Pending Recipes
 ```http
