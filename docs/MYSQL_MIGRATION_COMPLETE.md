@@ -152,8 +152,8 @@ docker compose logs -f
 
 ### Configure NPM
 
-1. **Backend API**: `api.recipes.tachyonfuture.com` → `moms-recipes-backend:3001`
-2. **Frontend**: `recipes.tachyonfuture.com` → `moms-recipes-frontend:80`
+1. **Backend API**: `api.moms-recipes.tachyonfuture.com` → `moms-recipes-backend:3001`
+2. **Frontend**: `moms-recipes.tachyonfuture.com` → `moms-recipes-frontend:80`
 
 Both with SSL certificates from Let's Encrypt.
 
