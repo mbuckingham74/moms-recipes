@@ -65,12 +65,38 @@ const initDatabase = async () => {
         estimated_calories INT DEFAULT NULL,
         calories_confidence ENUM('low', 'medium', 'high') DEFAULT NULL,
         image_path VARCHAR(255),
+        times_cooked INT NOT NULL DEFAULT 0,
         created_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
         updated_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
         INDEX idx_recipes_title (title),
         INDEX idx_recipes_date_added (date_added)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // Add times_cooked column if it doesn't exist (for existing databases)
+    // Use INFORMATION_SCHEMA check for MySQL 5.7 compatibility (no IF NOT EXISTS support)
+    const [columns] = await connection.query(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recipes' AND COLUMN_NAME = 'times_cooked'
+    `, [dbName]);
+
+    if (columns.length === 0) {
+      await connection.query(`
+        ALTER TABLE recipes ADD COLUMN times_cooked INT NOT NULL DEFAULT 0
+      `);
+    }
+
+    // Add index on times_cooked for sorting performance (if not exists)
+    const [indexes] = await connection.query(`
+      SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'recipes' AND INDEX_NAME = 'idx_recipes_times_cooked'
+    `, [dbName]);
+
+    if (indexes.length === 0) {
+      await connection.query(`
+        ALTER TABLE recipes ADD INDEX idx_recipes_times_cooked (times_cooked)
+      `);
+    }
 
     // Ingredients table
     await connection.query(`

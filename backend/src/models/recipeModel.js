@@ -412,6 +412,53 @@ class RecipeModel {
     return this.getById(id);
   }
 
+  // Get admin recipe list with all table columns
+  static async getAdminList(limit = 50, offset = 0, sortBy = 'date_added', sortOrder = 'DESC') {
+    // Cap limit to prevent abuse
+    const cappedLimit = Math.min(Math.max(1, limit), 100);
+    const cappedOffset = Math.max(0, offset);
+
+    // Validate sort parameters
+    const validSortColumns = ['title', 'date_added', 'estimated_calories', 'times_cooked'];
+    const validSortOrders = ['ASC', 'DESC'];
+    const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'date_added';
+    const safeSortOrder = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+
+    // Get the first tag for each recipe as the "category" and first ingredient as "main ingredient"
+    const recipes = await db.prepare(`
+      SELECT
+        r.id,
+        r.title,
+        r.date_added,
+        r.estimated_calories,
+        r.times_cooked,
+        (SELECT t.name FROM tags t
+         INNER JOIN recipe_tags rt ON t.id = rt.tag_id
+         WHERE rt.recipe_id = r.id
+         LIMIT 1) as category,
+        (SELECT i.name FROM ingredients i
+         WHERE i.recipe_id = r.id
+         ORDER BY i.position
+         LIMIT 1) as main_ingredient
+      FROM recipes r
+      ORDER BY ${safeSortBy} ${safeSortOrder}
+      LIMIT ?, ?
+    `).all(cappedOffset, cappedLimit);
+
+    return recipes.map(recipe => toCamelCase(recipe));
+  }
+
+  // Update times_cooked for a recipe
+  static async incrementTimesCooked(id) {
+    const stmt = db.prepare(`
+      UPDATE recipes
+      SET times_cooked = times_cooked + 1, updated_at = UNIX_TIMESTAMP()
+      WHERE id = ?
+    `);
+    await stmt.run(id);
+    return this.getById(id);
+  }
+
   // Get dashboard statistics
   static async getDashboardStats() {
     // Get total recipes count

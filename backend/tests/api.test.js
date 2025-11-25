@@ -482,6 +482,147 @@ describe('Recipe API Integration Tests', () => {
     });
   });
 
+  describe('Admin Recipe List', () => {
+    describe('GET /api/admin/recipes - Admin Recipe Table', () => {
+      test('should return paginated admin recipe list with all columns', async () => {
+        // Create test recipes
+        await createTestRecipe({
+          title: 'Admin Test Recipe 1',
+          tags: ['dinner'],
+          ingredients: [{ name: 'chicken', quantity: '1', unit: 'lb' }]
+        });
+        await createTestRecipe({
+          title: 'Admin Test Recipe 2',
+          tags: ['dessert'],
+          ingredients: [{ name: 'sugar', quantity: '2', unit: 'cups' }]
+        });
+
+        const response = await request(app)
+          .get('/api/admin/recipes')
+          .set('Cookie', [`token=${authToken}`])
+          .expect(200);
+
+        expect(response.body).toHaveProperty('recipes');
+        expect(response.body).toHaveProperty('pagination');
+        expect(Array.isArray(response.body.recipes)).toBe(true);
+        expect(response.body.recipes.length).toBeGreaterThanOrEqual(2);
+
+        // Check all expected columns are present
+        const recipe = response.body.recipes[0];
+        expect(recipe).toHaveProperty('id');
+        expect(recipe).toHaveProperty('title');
+        expect(recipe).toHaveProperty('dateAdded');
+        expect(recipe).toHaveProperty('category');
+        expect(recipe).toHaveProperty('mainIngredient');
+        expect(recipe).toHaveProperty('timesCooked');
+      });
+
+      test('should support sorting by title', async () => {
+        await createTestRecipe({ title: 'Apple Pie' });
+        await createTestRecipe({ title: 'Zebra Cake' });
+
+        const responseAsc = await request(app)
+          .get('/api/admin/recipes?sortBy=title&sortOrder=ASC')
+          .set('Cookie', [`token=${authToken}`])
+          .expect(200);
+
+        const titlesAsc = responseAsc.body.recipes.map(r => r.title);
+        expect(titlesAsc[0]).toBe('Apple Pie');
+
+        const responseDesc = await request(app)
+          .get('/api/admin/recipes?sortBy=title&sortOrder=DESC')
+          .set('Cookie', [`token=${authToken}`])
+          .expect(200);
+
+        const titlesDesc = responseDesc.body.recipes.map(r => r.title);
+        expect(titlesDesc[0]).toBe('Zebra Cake');
+      });
+
+      test('should support sorting by times_cooked', async () => {
+        const response = await request(app)
+          .get('/api/admin/recipes?sortBy=times_cooked&sortOrder=DESC')
+          .set('Cookie', [`token=${authToken}`])
+          .expect(200);
+
+        expect(response.body).toHaveProperty('recipes');
+      });
+
+      test('should reject invalid sort columns', async () => {
+        const response = await request(app)
+          .get('/api/admin/recipes?sortBy=invalid_column')
+          .set('Cookie', [`token=${authToken}`])
+          .expect(200);
+
+        // Should fall back to default sort (date_added)
+        expect(response.body).toHaveProperty('recipes');
+      });
+
+      test('should require authentication', async () => {
+        const response = await request(app)
+          .get('/api/admin/recipes')
+          .expect(401);
+
+        expect(response.body).toHaveProperty('error');
+      });
+    });
+
+    describe('POST /api/recipes/:id/cooked - Increment Times Cooked', () => {
+      test('should increment times cooked', async () => {
+        const recipe = await createTestRecipe();
+
+        const response = await request(app)
+          .post(`/api/recipes/${recipe.id}/cooked`)
+          .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
+          .expect(200);
+
+        expect(response.body.message).toBe('Times cooked updated successfully');
+        expect(response.body.timesCooked).toBe(1);
+
+        // Increment again
+        const response2 = await request(app)
+          .post(`/api/recipes/${recipe.id}/cooked`)
+          .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
+          .expect(200);
+
+        expect(response2.body.timesCooked).toBe(2);
+      });
+
+      test('should return 404 for non-existent recipe', async () => {
+        const response = await request(app)
+          .post('/api/recipes/99999/cooked')
+          .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
+          .expect(404);
+
+        expect(response.body.error).toBe('Recipe not found');
+      });
+
+      test('should require CSRF token', async () => {
+        const recipe = await createTestRecipe();
+
+        const response = await request(app)
+          .post(`/api/recipes/${recipe.id}/cooked`)
+          .set('Cookie', [`token=${authToken}`])
+          .expect(403);
+
+        expect(response.body.error).toContain('CSRF');
+      });
+
+      test('should require authentication', async () => {
+        const recipe = await createTestRecipe();
+
+        const response = await request(app)
+          .post(`/api/recipes/${recipe.id}/cooked`)
+          .set('x-csrf-token', csrfToken)
+          .expect(401);
+
+        expect(response.body).toHaveProperty('error');
+      });
+    });
+  });
+
   describe('Error Handling', () => {
     test('should return 404 for non-existent routes', async () => {
       const response = await request(app)

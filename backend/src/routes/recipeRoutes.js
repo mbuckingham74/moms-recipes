@@ -19,6 +19,12 @@ router.post('/recipes/:id/estimate-calories', authenticate, requireAdmin, csrfPr
 // Dashboard stats (admin-only, read-only so no CSRF needed)
 router.get('/admin/stats', authenticate, requireAdmin, RecipeController.getDashboardStats);
 
+// Admin recipe list for table view (admin-only, read-only so no CSRF needed)
+router.get('/admin/recipes', authenticate, requireAdmin, RecipeController.getAdminRecipeList);
+
+// Increment times cooked (admin-only, requires CSRF)
+router.post('/recipes/:id/cooked', authenticate, requireAdmin, csrfProtection, RecipeController.incrementTimesCooked);
+
 // Tags (public, read-only)
 router.get('/tags', RecipeController.getAllTags);
 
