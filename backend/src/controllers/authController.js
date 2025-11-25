@@ -1,9 +1,7 @@
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
 const { ApiError, asyncHandler } = require('../middleware/errorHandler');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_EXPIRES_IN = '7d'; // Token expires in 7 days
+const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/jwt');
 
 /**
  * Generate JWT token for user

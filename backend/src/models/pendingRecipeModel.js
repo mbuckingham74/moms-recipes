@@ -1,8 +1,5 @@
 const db = require('../config/database');
 
-// Detect if we're using MySQL (async) or SQLite (sync)
-const isMySQL = process.env.NODE_ENV === 'production' || process.env.USE_MYSQL === 'true';
-
 class PendingRecipeModel {
   /**
    * Create a new pending recipe from PDF parse
@@ -22,122 +19,63 @@ class PendingRecipeModel {
   static async create({ fileId, title, source, category, description, instructions, rawText, parsedData, ingredients = [], tags = [] }) {
     const timestamp = Math.floor(Date.now() / 1000);
 
-    let pendingRecipeId;
+    // Use async transaction with connection-bound db
+    const insertPending = db.transaction(async (txDb) => {
+      // Insert pending recipe
+      const recipeStmt = txDb.prepare(`
+        INSERT INTO pending_recipes (file_id, title, source, category, description, instructions, raw_text, parsed_data, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
 
-    if (isMySQL) {
-      // MySQL: Use async transaction with connection-bound db
-      const insertPending = db.transaction(async (txDb) => {
-        // Insert pending recipe
-        const recipeStmt = txDb.prepare(`
-          INSERT INTO pending_recipes (file_id, title, source, category, description, instructions, raw_text, parsed_data, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
+      const result = await recipeStmt.run(
+        fileId,
+        title || null,
+        source || null,
+        category || null,
+        description || null,
+        instructions || null,
+        rawText || null,
+        JSON.stringify(parsedData),
+        timestamp
+      );
 
-        const result = await recipeStmt.run(
-          fileId,
-          title || null,
-          source || null,
-          category || null,
-          description || null,
-          instructions || null,
-          rawText || null,
-          JSON.stringify(parsedData),
-          timestamp
-        );
+      const newPendingRecipeId = result.lastInsertRowid;
 
-        const newPendingRecipeId = result.lastInsertRowid;
-
-        // Insert ingredients
-        if (ingredients && ingredients.length > 0) {
-          const ingredientStmt = txDb.prepare(`
-            INSERT INTO pending_ingredients (pending_recipe_id, name, quantity, unit, position)
-            VALUES (?, ?, ?, ?, ?)
-          `);
-
-          for (let index = 0; index < ingredients.length; index++) {
-            const ingredient = ingredients[index];
-            await ingredientStmt.run(
-              newPendingRecipeId,
-              ingredient.name,
-              ingredient.quantity || null,
-              ingredient.unit || null,
-              index
-            );
-          }
-        }
-
-        // Insert tags
-        if (tags && tags.length > 0) {
-          const tagStmt = txDb.prepare(`
-            INSERT INTO pending_tags (pending_recipe_id, tag_name)
-            VALUES (?, ?)
-          `);
-
-          for (const tag of tags) {
-            await tagStmt.run(newPendingRecipeId, tag);
-          }
-        }
-
-        return newPendingRecipeId;
-      });
-
-      pendingRecipeId = await insertPending();
-    } else {
-      // SQLite: Use synchronous transaction
-      const insertPending = db.transaction(() => {
-        // Insert pending recipe
-        const recipeStmt = db.prepare(`
-          INSERT INTO pending_recipes (file_id, title, source, category, description, instructions, raw_text, parsed_data, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        const result = recipeStmt.run(
-          fileId,
-          title || null,
-          source || null,
-          category || null,
-          description || null,
-          instructions || null,
-          rawText || null,
-          JSON.stringify(parsedData),
-          timestamp
-        );
-
-        const newPendingRecipeId = result.lastInsertRowid;
-
-        // Insert ingredients
-        const ingredientStmt = db.prepare(`
+      // Insert ingredients
+      if (ingredients && ingredients.length > 0) {
+        const ingredientStmt = txDb.prepare(`
           INSERT INTO pending_ingredients (pending_recipe_id, name, quantity, unit, position)
           VALUES (?, ?, ?, ?, ?)
         `);
 
-        ingredients.forEach((ingredient, index) => {
-          ingredientStmt.run(
+        for (let index = 0; index < ingredients.length; index++) {
+          const ingredient = ingredients[index];
+          await ingredientStmt.run(
             newPendingRecipeId,
             ingredient.name,
             ingredient.quantity || null,
             ingredient.unit || null,
             index
           );
-        });
+        }
+      }
 
-        // Insert tags
-        const tagStmt = db.prepare(`
+      // Insert tags
+      if (tags && tags.length > 0) {
+        const tagStmt = txDb.prepare(`
           INSERT INTO pending_tags (pending_recipe_id, tag_name)
           VALUES (?, ?)
         `);
 
-        tags.forEach((tag) => {
-          tagStmt.run(newPendingRecipeId, tag);
-        });
+        for (const tag of tags) {
+          await tagStmt.run(newPendingRecipeId, tag);
+        }
+      }
 
-        return newPendingRecipeId;
-      });
+      return newPendingRecipeId;
+    });
 
-      pendingRecipeId = insertPending();
-    }
-
-    return pendingRecipeId;
+    return await insertPending();
   }
 
   /**
@@ -249,104 +187,54 @@ class PendingRecipeModel {
    * @returns {Promise<void>}
    */
   static async update(id, { title, source, category, description, instructions, ingredients, tags }) {
-    if (isMySQL) {
-      // MySQL: Use async transaction
-      const updatePending = db.transaction(async (txDb) => {
-        // Update main record
-        const updateStmt = txDb.prepare(`
-          UPDATE pending_recipes
-          SET title = ?, source = ?, category = ?, description = ?, instructions = ?
-          WHERE id = ?
+    // Use async transaction
+    const updatePending = db.transaction(async (txDb) => {
+      // Update main record
+      const updateStmt = txDb.prepare(`
+        UPDATE pending_recipes
+        SET title = ?, source = ?, category = ?, description = ?, instructions = ?
+        WHERE id = ?
+      `);
+
+      await updateStmt.run(title, source, category, description, instructions, id);
+
+      // Delete and re-insert ingredients if provided
+      if (ingredients) {
+        await txDb.prepare('DELETE FROM pending_ingredients WHERE pending_recipe_id = ?').run(id);
+
+        const ingredientStmt = txDb.prepare(`
+          INSERT INTO pending_ingredients (pending_recipe_id, name, quantity, unit, position)
+          VALUES (?, ?, ?, ?, ?)
         `);
 
-        await updateStmt.run(title, source, category, description, instructions, id);
-
-        // Delete and re-insert ingredients if provided
-        if (ingredients) {
-          await txDb.prepare('DELETE FROM pending_ingredients WHERE pending_recipe_id = ?').run(id);
-
-          const ingredientStmt = txDb.prepare(`
-            INSERT INTO pending_ingredients (pending_recipe_id, name, quantity, unit, position)
-            VALUES (?, ?, ?, ?, ?)
-          `);
-
-          for (let index = 0; index < ingredients.length; index++) {
-            const ingredient = ingredients[index];
-            await ingredientStmt.run(
-              id,
-              ingredient.name,
-              ingredient.quantity || null,
-              ingredient.unit || null,
-              index
-            );
-          }
+        for (let index = 0; index < ingredients.length; index++) {
+          const ingredient = ingredients[index];
+          await ingredientStmt.run(
+            id,
+            ingredient.name,
+            ingredient.quantity || null,
+            ingredient.unit || null,
+            index
+          );
         }
+      }
 
-        // Delete and re-insert tags if provided
-        if (tags) {
-          await txDb.prepare('DELETE FROM pending_tags WHERE pending_recipe_id = ?').run(id);
+      // Delete and re-insert tags if provided
+      if (tags) {
+        await txDb.prepare('DELETE FROM pending_tags WHERE pending_recipe_id = ?').run(id);
 
-          const tagStmt = txDb.prepare(`
-            INSERT INTO pending_tags (pending_recipe_id, tag_name)
-            VALUES (?, ?)
-          `);
-
-          for (const tag of tags) {
-            await tagStmt.run(id, tag);
-          }
-        }
-      });
-
-      await updatePending();
-    } else {
-      // SQLite: Use synchronous transaction
-      const updatePending = db.transaction(() => {
-        // Update main record
-        const updateStmt = db.prepare(`
-          UPDATE pending_recipes
-          SET title = ?, source = ?, category = ?, description = ?, instructions = ?
-          WHERE id = ?
+        const tagStmt = txDb.prepare(`
+          INSERT INTO pending_tags (pending_recipe_id, tag_name)
+          VALUES (?, ?)
         `);
 
-        updateStmt.run(title, source, category, description, instructions, id);
-
-        // Delete and re-insert ingredients if provided
-        if (ingredients) {
-          db.prepare('DELETE FROM pending_ingredients WHERE pending_recipe_id = ?').run(id);
-
-          const ingredientStmt = db.prepare(`
-            INSERT INTO pending_ingredients (pending_recipe_id, name, quantity, unit, position)
-            VALUES (?, ?, ?, ?, ?)
-          `);
-
-          ingredients.forEach((ingredient, index) => {
-            ingredientStmt.run(
-              id,
-              ingredient.name,
-              ingredient.quantity || null,
-              ingredient.unit || null,
-              index
-            );
-          });
+        for (const tag of tags) {
+          await tagStmt.run(id, tag);
         }
+      }
+    });
 
-        // Delete and re-insert tags if provided
-        if (tags) {
-          db.prepare('DELETE FROM pending_tags WHERE pending_recipe_id = ?').run(id);
-
-          const tagStmt = db.prepare(`
-            INSERT INTO pending_tags (pending_recipe_id, tag_name)
-            VALUES (?, ?)
-          `);
-
-          tags.forEach((tag) => {
-            tagStmt.run(id, tag);
-          });
-        }
-      });
-
-      updatePending();
-    }
+    await updatePending();
   }
 
   /**
