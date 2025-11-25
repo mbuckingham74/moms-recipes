@@ -8,21 +8,6 @@ const REQUEST_TIMEOUT = 15000;
 // Maximum number of redirects to follow
 const MAX_REDIRECTS = 5;
 
-// Private/internal IP ranges that should be blocked (SSRF protection)
-const BLOCKED_IP_RANGES = [
-  /^127\./,                    // Loopback
-  /^10\./,                     // Private Class A
-  /^172\.(1[6-9]|2[0-9]|3[01])\./, // Private Class B
-  /^192\.168\./,               // Private Class C
-  /^169\.254\./,               // Link-local
-  /^0\./,                      // Current network
-  /^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\./, // Carrier-grade NAT
-  /^::1$/,                     // IPv6 loopback
-  /^fe80:/i,                   // IPv6 link-local
-  /^fc00:/i,                   // IPv6 unique local
-  /^fd/i,                      // IPv6 unique local
-];
-
 // Blocked hostnames
 const BLOCKED_HOSTNAMES = [
   'localhost',
@@ -33,12 +18,144 @@ const BLOCKED_HOSTNAMES = [
 
 class UrlScraper {
   /**
-   * Check if an IP address is in a private/blocked range
+   * Check if an IPv4 address is in a private/blocked range
+   * @param {number[]} octets - Array of 4 octets (0-255)
+   * @returns {boolean} - True if blocked
+   */
+  static isBlockedIPv4(octets) {
+    const [a, b, c, d] = octets;
+
+    // Validate octets
+    if (octets.length !== 4 || octets.some(o => o < 0 || o > 255 || !Number.isInteger(o))) {
+      return true; // Invalid = blocked for safety
+    }
+
+    // 127.0.0.0/8 - Loopback
+    if (a === 127) return true;
+
+    // 10.0.0.0/8 - Private Class A
+    if (a === 10) return true;
+
+    // 172.16.0.0/12 - Private Class B
+    if (a === 172 && b >= 16 && b <= 31) return true;
+
+    // 192.168.0.0/16 - Private Class C
+    if (a === 192 && b === 168) return true;
+
+    // 169.254.0.0/16 - Link-local
+    if (a === 169 && b === 254) return true;
+
+    // 0.0.0.0/8 - Current network
+    if (a === 0) return true;
+
+    // 100.64.0.0/10 - Carrier-grade NAT
+    if (a === 100 && b >= 64 && b <= 127) return true;
+
+    // 224.0.0.0/4 - Multicast
+    if (a >= 224 && a <= 239) return true;
+
+    // 240.0.0.0/4 - Reserved
+    if (a >= 240) return true;
+
+    return false;
+  }
+
+  /**
+   * Extract embedded IPv4 from IPv6 address if present
+   * Handles: ::ffff:a.b.c.d, ::ffff:XXYY:ZZWW, 2002:XXYY:ZZWW::, ::a.b.c.d
+   * @param {string} ip - IPv6 address
+   * @returns {number[]|null} - IPv4 octets or null if not embedded
+   */
+  static extractEmbeddedIPv4(ip) {
+    const lower = ip.toLowerCase();
+
+    // IPv4-mapped: ::ffff:a.b.c.d (dot-decimal notation)
+    const mappedDotMatch = lower.match(/^::ffff:(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (mappedDotMatch) {
+      return mappedDotMatch.slice(1, 5).map(Number);
+    }
+
+    // IPv4-mapped: ::ffff:XXYY:ZZWW (hex notation)
+    const mappedHexMatch = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (mappedHexMatch) {
+      const high = parseInt(mappedHexMatch[1], 16);
+      const low = parseInt(mappedHexMatch[2], 16);
+      return [(high >> 8) & 0xff, high & 0xff, (low >> 8) & 0xff, low & 0xff];
+    }
+
+    // IPv4-compatible (deprecated but still valid): ::a.b.c.d
+    const compatDotMatch = lower.match(/^::(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (compatDotMatch) {
+      return compatDotMatch.slice(1, 5).map(Number);
+    }
+
+    // IPv4-compatible hex: ::XXYY:ZZWW (but not ::ffff:...)
+    const compatHexMatch = lower.match(/^::([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (compatHexMatch && !lower.startsWith('::ffff:')) {
+      const high = parseInt(compatHexMatch[1], 16);
+      const low = parseInt(compatHexMatch[2], 16);
+      return [(high >> 8) & 0xff, high & 0xff, (low >> 8) & 0xff, low & 0xff];
+    }
+
+    // 6to4: 2002:XXYY:ZZWW::/48 - first 32 bits after 2002: are IPv4
+    const sixtofourMatch = lower.match(/^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})/);
+    if (sixtofourMatch) {
+      const high = parseInt(sixtofourMatch[1], 16);
+      const low = parseInt(sixtofourMatch[2], 16);
+      return [(high >> 8) & 0xff, high & 0xff, (low >> 8) & 0xff, low & 0xff];
+    }
+
+    // Teredo: 2001:0000:...  - IPv4 is encoded in last 32 bits (XOR'd with 0xffffffff)
+    // We block Teredo entirely as it's complex and rarely legitimate for recipe sites
+    if (lower.startsWith('2001:0000:') || lower.startsWith('2001:0:')) {
+      return [127, 0, 0, 1]; // Return loopback to ensure it's blocked
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if an IP address (IPv4 or IPv6) is in a private/blocked range
    * @param {string} ip - IP address to check
    * @returns {boolean} - True if blocked
    */
   static isBlockedIp(ip) {
-    return BLOCKED_IP_RANGES.some(pattern => pattern.test(ip));
+    if (!ip || typeof ip !== 'string') return true;
+
+    const lower = ip.toLowerCase().trim();
+
+    // Check for IPv4
+    const ipv4Match = lower.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipv4Match) {
+      return this.isBlockedIPv4(ipv4Match.slice(1, 5).map(Number));
+    }
+
+    // Check for embedded IPv4 in IPv6
+    const embeddedIPv4 = this.extractEmbeddedIPv4(lower);
+    if (embeddedIPv4) {
+      return this.isBlockedIPv4(embeddedIPv4);
+    }
+
+    // Pure IPv6 checks
+    // ::1 - Loopback
+    if (lower === '::1') return true;
+
+    // fe80::/10 - Link-local
+    if (lower.startsWith('fe80:') || lower.startsWith('fe8') ||
+        lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) {
+      return true;
+    }
+
+    // fc00::/7 - Unique local (fc00:: and fd00::)
+    if (lower.startsWith('fc') || lower.startsWith('fd')) return true;
+
+    // ff00::/8 - Multicast
+    if (lower.startsWith('ff')) return true;
+
+    // :: alone (unspecified address)
+    if (lower === '::') return true;
+
+    return false;
   }
 
   /**
