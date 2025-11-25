@@ -50,6 +50,23 @@ Key implementation details:
 - Frontend uses `urlHelpers.js` to construct proper image URLs (handles `/api` suffix stripping)
 - Image ownership is validated in reorder endpoint to prevent manipulation
 
+## URL Import Image Extraction
+
+When importing recipes from URLs, the system automatically extracts and downloads recipe images:
+
+- Images are downloaded from JSON-LD `image` field or parsed image URLs
+- Downloaded images are stored in `backend/uploads/images/` with UUID filenames
+- Images are stored in `pending_recipes` table columns until approval
+- On approval, image is attached to the recipe via `RecipeImageModel` as hero image
+- On rejection/deletion, orphaned image files are cleaned up from disk
+
+Security & reliability:
+- Same SSRF protections as URL scraping (blocks private IPs, validates hostnames)
+- 30-second timeout, 10MB max file size for image downloads
+- Content-type validation (only JPEG, PNG, GIF, WebP allowed)
+- Failed downloads don't block recipe import - recipe is created without image
+- Orphan cleanup: Images are deleted if import fails, approval fails, or recipe is rejected
+
 ## Environment Variables (Production Required)
 
 - `DB_PASSWORD` - MySQL password
