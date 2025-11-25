@@ -25,6 +25,15 @@ jobs:
       - name: Deploy to server
         env:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          CSRF_SECRET: ${{ secrets.CSRF_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ADMIN1_USERNAME: ${{ secrets.ADMIN1_USERNAME }}
+          ADMIN1_PASSWORD: ${{ secrets.ADMIN1_PASSWORD }}
+          ADMIN1_EMAIL: ${{ secrets.ADMIN1_EMAIL }}
+          ADMIN2_USERNAME: ${{ secrets.ADMIN2_USERNAME }}
+          ADMIN2_PASSWORD: ${{ secrets.ADMIN2_PASSWORD }}
+          ADMIN2_EMAIL: ${{ secrets.ADMIN2_EMAIL }}
         run: |
           ssh michael@tachyonfuture.com << ENDSSH
             cd ~/moms-recipes || git clone https://github.com/mbuckingham74/moms-recipes.git ~/moms-recipes
@@ -41,6 +50,15 @@ jobs:
           DB_NAME=moms_recipes
           FRONTEND_URL=https://moms-recipes.tachyonfuture.com
           PORT=3001
+          JWT_SECRET=${JWT_SECRET}
+          CSRF_SECRET=${CSRF_SECRET}
+          ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+          ADMIN1_USERNAME=${ADMIN1_USERNAME}
+          ADMIN1_PASSWORD=${ADMIN1_PASSWORD}
+          ADMIN1_EMAIL=${ADMIN1_EMAIL}
+          ADMIN2_USERNAME=${ADMIN2_USERNAME}
+          ADMIN2_PASSWORD=${ADMIN2_PASSWORD}
+          ADMIN2_EMAIL=${ADMIN2_EMAIL}
           EOF
 
             # Run deployment script
