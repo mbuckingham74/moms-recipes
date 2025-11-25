@@ -37,6 +37,8 @@ export const AuthProvider = ({ children }) => {
     setAuthExpiredHandler(() => {
       setUser(null);
     });
+    // Clean up handler on unmount to avoid setState calls after provider is torn down
+    return () => setAuthExpiredHandler(null);
   }, []);
 
   // Check if user is logged in on mount

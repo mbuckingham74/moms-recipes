@@ -33,7 +33,8 @@ function PendingRecipes() {
 
     try {
       await api.delete(`/admin/pending-recipes/${id}`);
-      setRecipes(recipes.filter(recipe => recipe.id !== id));
+      // Use functional update to avoid stale closure issues
+      setRecipes(prev => prev.filter(recipe => recipe.id !== id));
     } catch (err) {
       alert('Failed to delete recipe');
       console.error(err);
