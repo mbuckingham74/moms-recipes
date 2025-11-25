@@ -18,15 +18,51 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-# Check if DB_PASSWORD is set
-if ! grep -q "DB_PASSWORD=.\+" .env; then
-    echo "❌ DB_PASSWORD not set in .env file!"
-    echo "📝 Please edit .env and add your MySQL password"
+# Validate all required environment variables have real values (not placeholders)
+echo "🔍 Validating environment variables..."
+
+REQUIRED_VARS=(
+    "DB_PASSWORD"
+    "JWT_SECRET"
+    "CSRF_SECRET"
+    "FRONTEND_URL"
+)
+
+MISSING_VARS=()
+
+for var in "${REQUIRED_VARS[@]}"; do
+    value=$(grep "^${var}=" .env | cut -d'=' -f2-)
+    if [ -z "$value" ]; then
+        MISSING_VARS+=("$var (not set)")
+    elif [[ "$value" == *"your-"* ]] || [[ "$value" == *"_here"* ]] || [[ "$value" == *"change-in-production"* ]]; then
+        MISSING_VARS+=("$var (still has placeholder value)")
+    fi
+done
+
+if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+    echo "❌ Required environment variables are missing or invalid:"
+    for var in "${MISSING_VARS[@]}"; do
+        echo "   - $var"
+    done
+    echo ""
+    echo "📝 Please edit .env and set proper values"
     echo "   Run: nano .env"
+    echo ""
+    echo "💡 For secrets, generate them with:"
+    echo "   openssl rand -base64 32"
     exit 1
 fi
 
-echo "✅ Environment configured"
+# Additional check: JWT_SECRET must be at least 32 chars
+JWT_SECRET=$(grep "^JWT_SECRET=" .env | cut -d'=' -f2-)
+if [ ${#JWT_SECRET} -lt 32 ]; then
+    echo "❌ JWT_SECRET must be at least 32 characters!"
+    echo "   Current length: ${#JWT_SECRET}"
+    echo "   Generate a new one: openssl rand -base64 32"
+    exit 1
+fi
+
+echo "✅ All required environment variables validated"
 
 # Check if networks exist
 echo "🔍 Checking Docker networks..."
