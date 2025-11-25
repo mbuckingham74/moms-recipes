@@ -1,8 +1,15 @@
 const cheerio = require('cheerio');
 const dns = require('dns').promises;
+const fs = require('fs').promises;
+const path = require('path');
+const crypto = require('crypto');
 
 // Maximum response size (5MB should be plenty for any recipe page)
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
+// Maximum image size (5MB)
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+// Image download timeout
+const IMAGE_TIMEOUT = 10000;
 // Request timeout in milliseconds
 const REQUEST_TIMEOUT = 15000;
 // Maximum number of redirects to follow
@@ -659,6 +666,135 @@ class UrlScraper {
       content: mainContent,
       hostname,
     };
+  }
+
+  /**
+   * Download an image from a URL and save it locally
+   * @param {string} imageUrl - URL of the image to download
+   * @param {string} uploadDir - Directory to save the image
+   * @returns {Promise<Object|null>} - Image info or null if failed
+   */
+  static async downloadImage(imageUrl, uploadDir) {
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      return null;
+    }
+
+    try {
+      // Validate URL
+      const parsedUrl = this.validateUrl(imageUrl);
+
+      // Validate hostname (SSRF protection)
+      await this.validateHostname(parsedUrl.hostname);
+
+      // Set up abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), IMAGE_TIMEOUT);
+
+      let response;
+      try {
+        response = await this.fetchWithSafeRedirects(imageUrl, controller.signal);
+
+        if (!response.ok) {
+          console.warn(`Image download failed: HTTP ${response.status}`);
+          return null;
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          console.warn('Image download timed out');
+        } else {
+          console.warn(`Image download failed: ${err.message}`);
+        }
+        return null;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+
+      // Validate content type is an image
+      const contentType = response.headers.get('content-type') || '';
+      const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const mimeType = validImageTypes.find(type => contentType.includes(type));
+
+      if (!mimeType) {
+        console.warn(`Invalid image content type: ${contentType}`);
+        return null;
+      }
+
+      // Check content-length if provided
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength, 10) > MAX_IMAGE_SIZE) {
+        console.warn(`Image too large: ${contentLength} bytes`);
+        return null;
+      }
+
+      // Read the image data with size limit
+      const chunks = [];
+      const reader = response.body.getReader();
+      let totalSize = 0;
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          totalSize += value.length;
+          if (totalSize > MAX_IMAGE_SIZE) {
+            reader.cancel();
+            console.warn('Image exceeded size limit during download');
+            return null;
+          }
+
+          chunks.push(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      // Combine chunks into a single buffer
+      const imageBuffer = Buffer.concat(chunks.map(chunk => Buffer.from(chunk)));
+
+      // Generate unique filename
+      const extension = this.getExtensionFromMimeType(mimeType);
+      const uniqueId = crypto.randomUUID();
+      const filename = `${Date.now()}-${uniqueId}${extension}`;
+      const filePath = path.join(uploadDir, filename);
+
+      // Ensure upload directory exists
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      // Write file to disk
+      await fs.writeFile(filePath, imageBuffer);
+
+      // Extract original filename from URL
+      const urlPath = parsedUrl.pathname;
+      const originalName = path.basename(urlPath) || `recipe-image${extension}`;
+
+      return {
+        filename,
+        originalName,
+        filePath,
+        fileSize: imageBuffer.length,
+        mimeType,
+        sourceUrl: imageUrl
+      };
+    } catch (err) {
+      console.warn(`Failed to download image: ${err.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get file extension from MIME type
+   * @param {string} mimeType - MIME type
+   * @returns {string} - File extension including dot
+   */
+  static getExtensionFromMimeType(mimeType) {
+    const extensions = {
+      'image/jpeg': '.jpg',
+      'image/png': '.png',
+      'image/gif': '.gif',
+      'image/webp': '.webp'
+    };
+    return extensions[mimeType] || '.jpg';
   }
 }
 
