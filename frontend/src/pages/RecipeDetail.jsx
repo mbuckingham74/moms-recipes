@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { recipeAPI } from '../services/api';
+import api, { recipeAPI } from '../services/api';
 import { getTagClass, formatDate } from '../utils/recipeHelpers';
 import { useAuth } from '../contexts/AuthContext';
 import './RecipeDetail.css';
@@ -8,13 +8,15 @@ import './RecipeDetail.css';
 function RecipeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [estimatingCalories, setEstimatingCalories] = useState(false);
   const [calorieError, setCalorieError] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingRecipe, setSavingRecipe] = useState(false);
 
   const loadRecipe = useCallback(async (signal) => {
     try {
@@ -41,6 +43,40 @@ function RecipeDetail() {
     loadRecipe(abortController.signal);
     return () => abortController.abort();
   }, [loadRecipe]);
+
+  // Check if recipe is saved by current user
+  useEffect(() => {
+    const checkSaved = async () => {
+      if (user && !isAdmin()) {
+        try {
+          const response = await api.get(`/users/saved-recipes/${id}/check`);
+          setIsSaved(response.data.isSaved);
+        } catch (err) {
+          console.error('Error checking saved status:', err);
+        }
+      }
+    };
+    checkSaved();
+  }, [id, user, isAdmin]);
+
+  const handleToggleSave = async () => {
+    if (!user) return;
+
+    try {
+      setSavingRecipe(true);
+      if (isSaved) {
+        await api.delete(`/users/saved-recipes/${id}`);
+        setIsSaved(false);
+      } else {
+        await api.post(`/users/saved-recipes/${id}`);
+        setIsSaved(true);
+      }
+    } catch (err) {
+      console.error('Error toggling save:', err);
+    } finally {
+      setSavingRecipe(false);
+    }
+  };
 
   const handleDelete = async () => {
     // Guard against non-admin users
@@ -126,20 +162,39 @@ function RecipeDetail() {
               <p className="recipe-date">📅 Added {formatDate(recipe.dateAdded, false)}</p>
             )}
           </div>
-          {isAdmin() && (
-            <div className="recipe-actions">
-              <Link to={`/edit/${recipe.id}`} className="btn btn-secondary">
-                Edit Recipe
-              </Link>
+          <div className="recipe-actions">
+            {/* Save button for logged-in non-admin users */}
+            {user && !isAdmin() && (
               <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="btn btn-outline"
-                style={{ borderColor: 'var(--terracotta)', color: 'var(--terracotta)' }}
+                onClick={handleToggleSave}
+                disabled={savingRecipe}
+                className={`btn btn-save ${isSaved ? 'saved' : ''}`}
               >
-                Delete
+                {savingRecipe ? '...' : isSaved ? '♥ Saved' : '♡ Save'}
               </button>
-            </div>
-          )}
+            )}
+            {/* Prompt to login for guests */}
+            {!user && (
+              <Link to="/register" className="btn btn-outline save-prompt">
+                Sign up to save recipes
+              </Link>
+            )}
+            {/* Admin actions */}
+            {isAdmin() && (
+              <>
+                <Link to={`/edit/${recipe.id}`} className="btn btn-secondary">
+                  Edit Recipe
+                </Link>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="btn btn-outline"
+                  style={{ borderColor: 'var(--terracotta)', color: 'var(--terracotta)' }}
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {recipe.imagePath && (

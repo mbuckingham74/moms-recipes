@@ -222,6 +222,91 @@ const initDatabase = async () => {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // User preferences table (theme settings, etc.)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS user_preferences (
+        user_id INT PRIMARY KEY,
+        theme VARCHAR(20) DEFAULT 'light',
+        created_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        updated_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // User saved recipes (favorites)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS user_saved_recipes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        recipe_id INT NOT NULL,
+        saved_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        UNIQUE KEY unique_user_recipe (user_id, recipe_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
+        INDEX idx_saved_recipes_user (user_id),
+        INDEX idx_saved_recipes_recipe (recipe_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // User submitted recipes (pending admin approval)
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS user_submitted_recipes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        source VARCHAR(255),
+        instructions TEXT,
+        servings INT DEFAULT NULL,
+        status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+        admin_notes TEXT,
+        reviewed_by INT,
+        reviewed_at INT,
+        created_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        updated_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+        INDEX idx_submitted_recipes_user (user_id),
+        INDEX idx_submitted_recipes_status (status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // User submitted recipe ingredients
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS user_submitted_ingredients (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        submitted_recipe_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        quantity VARCHAR(50),
+        unit VARCHAR(50),
+        position INT NOT NULL,
+        FOREIGN KEY (submitted_recipe_id) REFERENCES user_submitted_recipes(id) ON DELETE CASCADE,
+        INDEX idx_submitted_ingredients_recipe (submitted_recipe_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // User submitted recipe tags
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS user_submitted_tags (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        submitted_recipe_id INT NOT NULL,
+        tag_name VARCHAR(100) NOT NULL,
+        FOREIGN KEY (submitted_recipe_id) REFERENCES user_submitted_recipes(id) ON DELETE CASCADE,
+        INDEX idx_submitted_tags_recipe (submitted_recipe_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Add email index on users table if not exists
+    const [emailIndex] = await connection.query(`
+      SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND INDEX_NAME = 'idx_users_email'
+    `, [dbName]);
+
+    if (emailIndex.length === 0) {
+      await connection.query(`
+        ALTER TABLE users ADD INDEX idx_users_email (email)
+      `);
+    }
+
     console.log('MySQL database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -343,6 +428,11 @@ const clearDatabase = async () => {
   await pool.execute('DELETE FROM ingredients');
   await pool.execute('DELETE FROM tags');
   await pool.execute('DELETE FROM recipes');
+  await pool.execute('DELETE FROM user_submitted_tags');
+  await pool.execute('DELETE FROM user_submitted_ingredients');
+  await pool.execute('DELETE FROM user_submitted_recipes');
+  await pool.execute('DELETE FROM user_saved_recipes');
+  await pool.execute('DELETE FROM user_preferences');
   await pool.execute('DELETE FROM users');
   await pool.execute('SET FOREIGN_KEY_CHECKS = 1');
 };

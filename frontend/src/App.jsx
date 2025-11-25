@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import RecipeDetail from './pages/RecipeDetail';
 import RecipeForm from './pages/RecipeForm';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/admin/Dashboard';
 import AdminRecipes from './pages/admin/AdminRecipes';
 import PdfUpload from './pages/admin/PdfUpload';
@@ -14,6 +15,11 @@ import UrlImport from './pages/admin/UrlImport';
 import PendingRecipes from './pages/admin/PendingRecipes';
 import PendingRecipeReview from './pages/admin/PendingRecipeReview';
 import AISettings from './pages/admin/AISettings';
+import UserSubmissions from './pages/admin/UserSubmissions';
+import UserDashboard from './pages/user/UserDashboard';
+import SavedRecipes from './pages/user/SavedRecipes';
+import SubmitRecipe from './pages/user/SubmitRecipe';
+import MySubmissions from './pages/user/MySubmissions';
 import './App.css';
 
 function App() {
@@ -27,6 +33,41 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/recipe/:id" element={<RecipeDetail />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+
+            {/* User routes (protected - any logged in user) */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <UserDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/saved-recipes"
+              element={
+                <ProtectedRoute>
+                  <SavedRecipes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/submit-recipe"
+              element={
+                <ProtectedRoute>
+                  <SubmitRecipe />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-submissions"
+              element={
+                <ProtectedRoute>
+                  <MySubmissions />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Admin routes (protected) - wrapped in AdminLayout */}
             <Route
@@ -115,6 +156,16 @@ function App() {
                 <ProtectedRoute requireAdmin={true}>
                   <AdminLayout>
                     <AISettings />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/user-submissions"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminLayout>
+                    <UserSubmissions />
                   </AdminLayout>
                 </ProtectedRoute>
               }

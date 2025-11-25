@@ -8,7 +8,7 @@ class UserModel {
    * Create a new user
    * @param {Object} userData - User data
    * @param {string} userData.username - Username (unique)
-   * @param {string} userData.email - Email (optional)
+   * @param {string} userData.email - Email (required for regular users)
    * @param {string} userData.password - Plain text password (will be hashed)
    * @param {string} userData.role - User role ('admin' or 'viewer')
    * @returns {Promise<number>} - User ID
@@ -31,7 +31,16 @@ class UserModel {
       timestamp
     );
 
-    return result.lastInsertRowid;
+    const userId = result.lastInsertRowid;
+
+    // Create default preferences for the user
+    const prefsStmt = db.prepare(`
+      INSERT INTO user_preferences (user_id, theme, created_at, updated_at)
+      VALUES (?, 'light', ?, ?)
+    `);
+    await prefsStmt.run(userId, timestamp, timestamp);
+
+    return userId;
   }
 
   /**
@@ -146,6 +155,86 @@ class UserModel {
 
     const result = await stmt.get(username);
     return result.count > 0;
+  }
+
+  /**
+   * Check if email exists
+   * @param {string} email
+   * @returns {Promise<boolean>}
+   */
+  static async emailExists(email) {
+    const stmt = db.prepare(`
+      SELECT COUNT(*) as count FROM users WHERE email = ?
+    `);
+
+    const result = await stmt.get(email);
+    return result.count > 0;
+  }
+
+  /**
+   * Find user by email
+   * @param {string} email
+   * @returns {Promise<Object|null>} - User object or null
+   */
+  static async findByEmail(email) {
+    const stmt = db.prepare(`
+      SELECT id, username, email, password_hash, role, created_at, updated_at
+      FROM users
+      WHERE email = ?
+    `);
+
+    return await stmt.get(email);
+  }
+
+  /**
+   * Get user preferences
+   * @param {number} userId
+   * @returns {Promise<Object|null>}
+   */
+  static async getPreferences(userId) {
+    const stmt = db.prepare(`
+      SELECT user_id, theme, created_at, updated_at
+      FROM user_preferences
+      WHERE user_id = ?
+    `);
+
+    return await stmt.get(userId);
+  }
+
+  /**
+   * Update user preferences
+   * @param {number} userId
+   * @param {Object} preferences
+   * @returns {Promise<void>}
+   */
+  static async updatePreferences(userId, { theme }) {
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    const stmt = db.prepare(`
+      UPDATE user_preferences
+      SET theme = ?, updated_at = ?
+      WHERE user_id = ?
+    `);
+
+    await stmt.run(theme, timestamp, userId);
+  }
+
+  /**
+   * Update user profile (email)
+   * @param {number} userId
+   * @param {Object} profileData
+   * @returns {Promise<void>}
+   */
+  static async updateProfile(userId, { email }) {
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    const stmt = db.prepare(`
+      UPDATE users
+      SET email = ?, updated_at = ?
+      WHERE id = ?
+    `);
+
+    await stmt.run(email, timestamp, userId);
   }
 }
 

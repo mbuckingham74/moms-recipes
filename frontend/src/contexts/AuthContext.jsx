@@ -80,12 +80,17 @@ export const AuthProvider = ({ children }) => {
     return user && user.role === 'admin';
   };
 
+  const isLoggedIn = () => {
+    return user !== null;
+  };
+
   const value = {
     user,
     loading,
     login,
     logout,
     isAdmin,
+    isLoggedIn,
     checkAuth
   };
 
