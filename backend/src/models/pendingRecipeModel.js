@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const fs = require('fs').promises;
 
 class PendingRecipeModel {
   /**
@@ -254,11 +255,29 @@ class PendingRecipeModel {
   }
 
   /**
-   * Delete pending recipe
+   * Delete pending recipe and clean up any associated image file
    * @param {number} id
+   * @param {boolean} deleteImageFile - Whether to delete the image file (default: false, set to true when rejecting)
    * @returns {Promise<void>}
    */
-  static async delete(id) {
+  static async delete(id, deleteImageFile = false) {
+    // If we need to delete the image file, get the recipe first
+    if (deleteImageFile) {
+      const recipe = await db.prepare(`
+        SELECT image_file_path FROM pending_recipes WHERE id = ?
+      `).get(id);
+
+      if (recipe && recipe.image_file_path) {
+        try {
+          await fs.unlink(recipe.image_file_path);
+          console.log(`Deleted orphaned image file: ${recipe.image_file_path}`);
+        } catch (err) {
+          // Log but don't fail if file doesn't exist or can't be deleted
+          console.warn(`Failed to delete image file: ${recipe.image_file_path}`, err.message);
+        }
+      }
+    }
+
     const stmt = db.prepare(`
       DELETE FROM pending_recipes WHERE id = ?
     `);

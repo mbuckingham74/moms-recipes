@@ -175,7 +175,8 @@ exports.deletePendingRecipe = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Pending recipe not found');
   }
 
-  await PendingRecipeModel.delete(id);
+  // Delete with image cleanup (true) since this is a rejection/deletion
+  await PendingRecipeModel.delete(id, true);
 
   res.json({
     success: true,
@@ -298,8 +299,8 @@ exports.approvePendingRecipe = asyncHandler(async (req, res) => {
   const RecipeModel = require('../models/recipeModel');
   const RecipeImageModel = require('../models/recipeImageModel');
 
-  // Create actual recipe
-  const recipeId = await RecipeModel.create({
+  // Create actual recipe (returns full recipe object, not just ID)
+  const recipe = await RecipeModel.create({
     title: pendingRecipe.title,
     source: pendingRecipe.source,
     instructions: pendingRecipe.instructions,
@@ -307,6 +308,8 @@ exports.approvePendingRecipe = asyncHandler(async (req, res) => {
     tags: pendingRecipe.tags,
     imagePath: null
   });
+
+  const recipeId = recipe.id;
 
   // If there's an extracted image, create a RecipeImageModel entry
   let imageCreated = false;
@@ -330,7 +333,7 @@ exports.approvePendingRecipe = asyncHandler(async (req, res) => {
     }
   }
 
-  // Delete pending recipe
+  // Delete pending recipe (image file is now associated with the approved recipe)
   await PendingRecipeModel.delete(id);
 
   res.json({
