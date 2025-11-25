@@ -24,7 +24,7 @@ services:
       ADMIN2_PASSWORD: ${ADMIN2_PASSWORD}
       ADMIN2_EMAIL: ${ADMIN2_EMAIL}
     volumes:
-      - ./backend/uploads:/app/uploads
+      - ./backend/uploads:/app/backend/uploads
       - backend-data:/app/data
     networks:
       - npm_network
