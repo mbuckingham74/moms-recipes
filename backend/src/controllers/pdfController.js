@@ -5,6 +5,7 @@ const PDFParser = require('../services/pdfParser');
 const AIService = require('../services/aiService');
 const UrlScraper = require('../services/urlScraper');
 const { ApiError, asyncHandler } = require('../middleware/errorHandler');
+const { UPLOAD_DIRS } = require('../middleware/upload');
 
 /**
  * Upload PDF and parse recipe
@@ -174,7 +175,8 @@ exports.deletePendingRecipe = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Pending recipe not found');
   }
 
-  await PendingRecipeModel.delete(id);
+  // Delete with image cleanup (true) since this is a rejection/deletion
+  await PendingRecipeModel.delete(id, true);
 
   res.json({
     success: true,
@@ -193,6 +195,8 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
   if (!url || !url.trim()) {
     throw new ApiError(400, 'URL is required');
   }
+
+  let downloadedImage = null;
 
   try {
     // 1. Scrape the URL
@@ -216,7 +220,18 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
       parsedRecipe.source = scraped.hostname;
     }
 
-    // 2. Create a file record for tracking (using URL as reference)
+    // 2. Try to download the recipe image if available
+    if (parsedRecipe.image) {
+      console.log(`Attempting to download image from: ${parsedRecipe.image}`);
+      downloadedImage = await UrlScraper.downloadImage(parsedRecipe.image, UPLOAD_DIRS.images);
+      if (downloadedImage) {
+        console.log(`Successfully downloaded image: ${downloadedImage.filename}`);
+      } else {
+        console.log('Image download failed or was skipped');
+      }
+    }
+
+    // 3. Create a file record for tracking (using URL as reference)
     const fileId = await FileModel.create({
       filename: `url-import-${Date.now()}.txt`,
       originalName: url,
@@ -226,7 +241,7 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
       uploadedBy: userId
     });
 
-    // 3. Save as pending recipe
+    // 4. Save as pending recipe (include image data if downloaded)
     const pendingRecipeId = await PendingRecipeModel.create({
       fileId,
       title: parsedRecipe.title,
@@ -237,10 +252,12 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
       rawText,
       parsedData: parsedRecipe,
       ingredients: parsedRecipe.ingredients || [],
-      tags: parsedRecipe.tags || []
+      tags: parsedRecipe.tags || [],
+      // Image data for pending recipe
+      imageData: downloadedImage
     });
 
-    // 4. Mark file as processed
+    // 5. Mark file as processed
     await FileModel.markAsProcessed(fileId);
 
     res.json({
@@ -251,10 +268,22 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
         pendingRecipeId,
         sourceUrl: url,
         extractionType: scraped.type,
+        hasImage: !!downloadedImage,
         recipe: await PendingRecipeModel.findById(pendingRecipeId)
       }
     });
   } catch (error) {
+    // Clean up downloaded image if import failed after download
+    if (downloadedImage && downloadedImage.filePath) {
+      try {
+        const fs = require('fs').promises;
+        await fs.unlink(downloadedImage.filePath);
+        console.log(`Cleaned up image after failed import: ${downloadedImage.filePath}`);
+      } catch (cleanupError) {
+        console.warn(`Failed to clean up image after failed import: ${cleanupError.message}`);
+      }
+    }
+
     // Re-throw API errors as-is
     if (error instanceof ApiError) {
       throw error;
@@ -270,6 +299,7 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
  */
 exports.approvePendingRecipe = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   // Get pending recipe
   const pendingRecipe = await PendingRecipeModel.findById(id);
@@ -277,27 +307,60 @@ exports.approvePendingRecipe = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Pending recipe not found');
   }
 
-  // Import RecipeModel to create recipe
+  // Import models
   const RecipeModel = require('../models/recipeModel');
+  const RecipeImageModel = require('../models/recipeImageModel');
 
-  // Create actual recipe
-  const recipeId = await RecipeModel.create({
+  // Create actual recipe (returns full recipe object, not just ID)
+  const recipe = await RecipeModel.create({
     title: pendingRecipe.title,
     source: pendingRecipe.source,
     instructions: pendingRecipe.instructions,
     ingredients: pendingRecipe.ingredients,
     tags: pendingRecipe.tags,
-    imagePath: null // No image from PDF
+    imagePath: null
   });
 
-  // Delete pending recipe
+  const recipeId = recipe.id;
+
+  // If there's an extracted image, create a RecipeImageModel entry
+  let imageCreated = false;
+  if (pendingRecipe.image_filename && pendingRecipe.image_file_path) {
+    try {
+      await RecipeImageModel.create({
+        recipeId: recipeId,
+        filename: pendingRecipe.image_filename,
+        originalName: pendingRecipe.image_original_name || 'recipe-image.jpg',
+        filePath: pendingRecipe.image_file_path,
+        fileSize: pendingRecipe.image_file_size || 0,
+        mimeType: pendingRecipe.image_mime_type || 'image/jpeg',
+        isHero: true, // Set as hero image
+        uploadedBy: userId
+      });
+      imageCreated = true;
+      console.log(`Created hero image for recipe ${recipeId}: ${pendingRecipe.image_filename}`);
+    } catch (imageError) {
+      // Image insert failed - clean up the orphaned file
+      console.error('Failed to create recipe image:', imageError.message);
+      try {
+        const fs = require('fs').promises;
+        await fs.unlink(pendingRecipe.image_file_path);
+        console.log(`Cleaned up orphaned image file: ${pendingRecipe.image_file_path}`);
+      } catch (cleanupError) {
+        console.warn(`Failed to clean up orphaned image: ${cleanupError.message}`);
+      }
+    }
+  }
+
+  // Delete pending recipe (image file is now associated with the approved recipe, or was cleaned up)
   await PendingRecipeModel.delete(id);
 
   res.json({
     success: true,
     message: 'Recipe approved and saved',
     data: {
-      recipeId
+      recipeId,
+      imageCreated
     }
   });
 });

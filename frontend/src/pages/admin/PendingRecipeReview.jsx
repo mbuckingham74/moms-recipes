@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
+import { getImageUrl } from '../../utils/urlHelpers';
 import '../../styles/PendingRecipeReview.css';
 
 function PendingRecipeReview() {
@@ -133,9 +134,26 @@ function PendingRecipeReview() {
 
       <div className="review-content">
         <div className="source-info">
-          <div className="info-label">Original PDF:</div>
+          <div className="info-label">Source:</div>
           <div className="info-value">{recipe.original_name}</div>
         </div>
+
+        {/* Display extracted image if available */}
+        {recipe.image && (
+          <div className="form-section image-preview-section">
+            <h3>Extracted Image</h3>
+            <div className="image-preview">
+              <img
+                src={getImageUrl(recipe.image.url)}
+                alt={recipe.title || 'Recipe preview'}
+                className="pending-recipe-image"
+              />
+            </div>
+            <p className="image-info">
+              This image was automatically extracted from the source URL and will be added as the hero image when approved.
+            </p>
+          </div>
+        )}
 
         <div className="form-section">
           <label className="form-label">

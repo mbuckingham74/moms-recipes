@@ -1,8 +1,9 @@
 const db = require('../config/database');
+const fs = require('fs').promises;
 
 class PendingRecipeModel {
   /**
-   * Create a new pending recipe from PDF parse
+   * Create a new pending recipe from PDF parse or URL import
    * @param {Object} recipeData
    * @param {number} recipeData.fileId - ID of uploaded file
    * @param {string} recipeData.title - Recipe title
@@ -14,17 +15,18 @@ class PendingRecipeModel {
    * @param {Object} recipeData.parsedData - Full parsed data from LLM
    * @param {Array} recipeData.ingredients - Array of ingredient objects
    * @param {Array} recipeData.tags - Array of tag strings
+   * @param {Object} recipeData.imageData - Downloaded image data (optional)
    * @returns {Promise<number>} - Pending recipe ID
    */
-  static async create({ fileId, title, source, category, description, instructions, rawText, parsedData, ingredients = [], tags = [] }) {
+  static async create({ fileId, title, source, category, description, instructions, rawText, parsedData, ingredients = [], tags = [], imageData = null }) {
     const timestamp = Math.floor(Date.now() / 1000);
 
     // Use async transaction with connection-bound db
     const insertPending = db.transaction(async (txDb) => {
-      // Insert pending recipe
+      // Insert pending recipe with image data if available
       const recipeStmt = txDb.prepare(`
-        INSERT INTO pending_recipes (file_id, title, source, category, description, instructions, raw_text, parsed_data, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO pending_recipes (file_id, title, source, category, description, instructions, raw_text, parsed_data, created_at, image_filename, image_original_name, image_file_path, image_file_size, image_mime_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const result = await recipeStmt.run(
@@ -36,7 +38,12 @@ class PendingRecipeModel {
         instructions || null,
         rawText || null,
         JSON.stringify(parsedData),
-        timestamp
+        timestamp,
+        imageData?.filename || null,
+        imageData?.originalName || null,
+        imageData?.filePath || null,
+        imageData?.fileSize || null,
+        imageData?.mimeType || null
       );
 
       const newPendingRecipeId = result.lastInsertRowid;
@@ -137,12 +144,22 @@ class PendingRecipeModel {
     // Use instructions as instructions_text for frontend compatibility
     const instructions_text = recipe.instructions || '';
 
+    // Build image info if available (sanitized URL for frontend)
+    const imageInfo = recipe.image_filename ? {
+      filename: recipe.image_filename,
+      originalName: recipe.image_original_name,
+      url: `/uploads/images/${recipe.image_filename}`,
+      fileSize: recipe.image_file_size,
+      mimeType: recipe.image_mime_type
+    } : null;
+
     return {
       ...recipe,
       ingredients,
       tags,
       ingredients_text,
-      instructions_text
+      instructions_text,
+      image: imageInfo
     };
   }
 
@@ -238,11 +255,29 @@ class PendingRecipeModel {
   }
 
   /**
-   * Delete pending recipe
+   * Delete pending recipe and clean up any associated image file
    * @param {number} id
+   * @param {boolean} deleteImageFile - Whether to delete the image file (default: false, set to true when rejecting)
    * @returns {Promise<void>}
    */
-  static async delete(id) {
+  static async delete(id, deleteImageFile = false) {
+    // If we need to delete the image file, get the recipe first
+    if (deleteImageFile) {
+      const recipe = await db.prepare(`
+        SELECT image_file_path FROM pending_recipes WHERE id = ?
+      `).get(id);
+
+      if (recipe && recipe.image_file_path) {
+        try {
+          await fs.unlink(recipe.image_file_path);
+          console.log(`Deleted orphaned image file: ${recipe.image_file_path}`);
+        } catch (err) {
+          // Log but don't fail if file doesn't exist or can't be deleted
+          console.warn(`Failed to delete image file: ${recipe.image_file_path}`, err.message);
+        }
+      }
+    }
+
     const stmt = db.prepare(`
       DELETE FROM pending_recipes WHERE id = ?
     `);

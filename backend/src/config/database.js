@@ -328,6 +328,23 @@ const initDatabase = async () => {
       `);
     }
 
+    // Add image columns to pending_recipes if they don't exist (for URL import image extraction)
+    const [imageFilenameColumn] = await connection.query(`
+      SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'pending_recipes' AND COLUMN_NAME = 'image_filename'
+    `, [dbName]);
+
+    if (imageFilenameColumn.length === 0) {
+      await connection.query(`
+        ALTER TABLE pending_recipes
+        ADD COLUMN image_filename VARCHAR(255) DEFAULT NULL,
+        ADD COLUMN image_original_name VARCHAR(255) DEFAULT NULL,
+        ADD COLUMN image_file_path VARCHAR(500) DEFAULT NULL,
+        ADD COLUMN image_file_size INT DEFAULT NULL,
+        ADD COLUMN image_mime_type VARCHAR(100) DEFAULT NULL
+      `);
+    }
+
     console.log('MySQL database initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);

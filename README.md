@@ -28,7 +28,7 @@ Upload and manage multiple images per recipe. Set a hero image for recipe cards 
 *Coming soon* - Take a photo of a recipe from a cookbook or magazine, and AI will extract all the recipe details, just like PDF parsing but for images.
 
 ### Smart Link Import
-Paste any recipe URL and the system intelligently extracts recipe data. For sites with structured data (AllRecipes, Food Network, etc.), it uses JSON-LD schema. For other sites, AI parses the page content to identify and extract recipe components.
+Paste any recipe URL and the system intelligently extracts recipe data. For sites with structured data (AllRecipes, Food Network, etc.), it uses JSON-LD schema. For other sites, AI parses the page content to identify and extract recipe components. **Images are automatically downloaded** from the source URL and attached as the hero image when the recipe is approved.
 
 ### Serving Size & Calorie Estimation
 AI analyzes your recipe's ingredients and portions to estimate calories per serving. Helpful for meal planning and dietary tracking without manual calorie counting.
@@ -92,8 +92,9 @@ AI analyzes your recipe's ingredients and portions to estimate calories per serv
   - Paste a recipe URL and automatically extract recipe data
   - Smart extraction using JSON-LD schema when available (AllRecipes, Food Network, etc.)
   - AI-powered parsing for sites without structured data
+  - **Automatic image extraction**: Downloads recipe images and attaches as hero image on approval
   - Comprehensive SSRF protection (blocks private IPs, cloud metadata endpoints)
-  - Review and edit before publishing
+  - Review and edit before publishing (with image preview)
 - **Recipe Image Upload**: Upload and manage recipe images
   - Multiple images per recipe with hero image selection
   - Image gallery with lightbox viewer
