@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Header from './components/Header';
+import AdminLayout from './components/AdminLayout';
 import Home from './pages/Home';
 import RecipeDetail from './pages/RecipeDetail';
 import RecipeForm from './pages/RecipeForm';
@@ -26,12 +27,14 @@ function App() {
             <Route path="/recipe/:id" element={<RecipeDetail />} />
             <Route path="/login" element={<Login />} />
 
-            {/* Admin routes (protected) */}
+            {/* Admin routes (protected) - wrapped in AdminLayout */}
             <Route
               path="/admin"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <Dashboard />
+                  <AdminLayout>
+                    <Dashboard />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -39,7 +42,9 @@ function App() {
               path="/admin/recipes"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <AdminRecipes />
+                  <AdminLayout>
+                    <AdminRecipes />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -47,7 +52,9 @@ function App() {
               path="/admin/upload"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <PdfUpload />
+                  <AdminLayout>
+                    <PdfUpload />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -55,7 +62,9 @@ function App() {
               path="/admin/import-url"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <UrlImport />
+                  <AdminLayout>
+                    <UrlImport />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -63,7 +72,9 @@ function App() {
               path="/admin/pending"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <PendingRecipes />
+                  <AdminLayout>
+                    <PendingRecipes />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -71,7 +82,9 @@ function App() {
               path="/admin/pending/:id"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <PendingRecipeReview />
+                  <AdminLayout>
+                    <PendingRecipeReview />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -79,7 +92,9 @@ function App() {
               path="/add"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <RecipeForm />
+                  <AdminLayout>
+                    <RecipeForm />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />
@@ -87,7 +102,9 @@ function App() {
               path="/edit/:id"
               element={
                 <ProtectedRoute requireAdmin={true}>
-                  <RecipeForm />
+                  <AdminLayout>
+                    <RecipeForm />
+                  </AdminLayout>
                 </ProtectedRoute>
               }
             />

@@ -1,26 +1,18 @@
 .dashboard-container {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 2rem;
 }
 
 .dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1rem;
   border-bottom: 2px solid #e0e0e0;
 }
 
 .dashboard-header h1 {
-  margin: 0 0 0.5rem 0;
-  color: #2c3e50;
-}
-
-.welcome-text {
-  color: #7f8c8d;
   margin: 0;
+  color: #2c3e50;
 }
 
 .metrics-panel {
@@ -91,54 +83,6 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
-}
-
-.actions-section {
-  margin-bottom: 3rem;
-}
-
-.actions-section h2 {
-  margin-bottom: 1.5rem;
-  color: #2c3e50;
-}
-
-.action-buttons {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.action-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  text-decoration: none;
-  color: inherit;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: all 0.3s ease;
-}
-
-.action-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-}
-
-.action-icon {
-  font-size: 2.5rem;
-}
-
-.action-content h3 {
-  margin: 0 0 0.5rem 0;
-  color: #2c3e50;
-}
-
-.action-content p {
-  margin: 0;
-  color: #7f8c8d;
-  font-size: 0.9rem;
 }
 
 .recent-section {

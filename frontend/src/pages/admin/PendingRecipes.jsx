@@ -55,13 +55,8 @@ function PendingRecipes() {
   return (
     <div className="pending-recipes-container">
       <div className="pending-header">
-        <div>
-          <h1>Pending Recipes</h1>
-          <p className="subtitle">Review and approve recipes before they appear in the collection</p>
-        </div>
-        <Link to="/admin" className="btn btn-secondary">
-          Back to Dashboard
-        </Link>
+        <h1>Pending Recipes</h1>
+        <p className="subtitle">Review and approve recipes before they appear in the collection</p>
       </div>
 
       {error && <div className="error-message">{error}</div>}

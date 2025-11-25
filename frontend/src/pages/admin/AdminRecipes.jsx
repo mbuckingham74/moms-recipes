@@ -86,13 +86,8 @@ function AdminRecipes() {
   return (
     <div className="admin-recipes-container">
       <div className="admin-recipes-header">
-        <div>
-          <h1>All Recipes</h1>
-          <p className="subtitle">{pagination.total} recipes total</p>
-        </div>
-        <Link to="/admin" className="btn btn-secondary">
-          Back to Dashboard
-        </Link>
+        <h1>All Recipes</h1>
+        <p className="subtitle">{pagination.total} recipes total</p>
       </div>
 
       {error && <div className="error-message">{error}</div>}
