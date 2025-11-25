@@ -196,6 +196,8 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'URL is required');
   }
 
+  let downloadedImage = null;
+
   try {
     // 1. Scrape the URL
     const scraped = await UrlScraper.scrape(url.trim());
@@ -219,7 +221,6 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
     }
 
     // 2. Try to download the recipe image if available
-    let downloadedImage = null;
     if (parsedRecipe.image) {
       console.log(`Attempting to download image from: ${parsedRecipe.image}`);
       downloadedImage = await UrlScraper.downloadImage(parsedRecipe.image, UPLOAD_DIRS.images);
@@ -272,6 +273,17 @@ exports.importFromUrl = asyncHandler(async (req, res) => {
       }
     });
   } catch (error) {
+    // Clean up downloaded image if import failed after download
+    if (downloadedImage && downloadedImage.filePath) {
+      try {
+        const fs = require('fs').promises;
+        await fs.unlink(downloadedImage.filePath);
+        console.log(`Cleaned up image after failed import: ${downloadedImage.filePath}`);
+      } catch (cleanupError) {
+        console.warn(`Failed to clean up image after failed import: ${cleanupError.message}`);
+      }
+    }
+
     // Re-throw API errors as-is
     if (error instanceof ApiError) {
       throw error;
@@ -328,12 +340,19 @@ exports.approvePendingRecipe = asyncHandler(async (req, res) => {
       imageCreated = true;
       console.log(`Created hero image for recipe ${recipeId}: ${pendingRecipe.image_filename}`);
     } catch (imageError) {
-      // Log but don't fail the approval if image creation fails
+      // Image insert failed - clean up the orphaned file
       console.error('Failed to create recipe image:', imageError.message);
+      try {
+        const fs = require('fs').promises;
+        await fs.unlink(pendingRecipe.image_file_path);
+        console.log(`Cleaned up orphaned image file: ${pendingRecipe.image_file_path}`);
+      } catch (cleanupError) {
+        console.warn(`Failed to clean up orphaned image: ${cleanupError.message}`);
+      }
     }
   }
 
-  // Delete pending recipe (image file is now associated with the approved recipe)
+  // Delete pending recipe (image file is now associated with the approved recipe, or was cleaned up)
   await PendingRecipeModel.delete(id);
 
   res.json({
