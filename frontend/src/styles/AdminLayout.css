@@ -1,6 +1,6 @@
 .admin-layout {
   display: flex;
-  min-height: calc(100vh - 80px); /* Account for header height */
+  min-height: calc(100vh - var(--header-height));
 }
 
 .admin-sidebar {
@@ -10,8 +10,8 @@
   display: flex;
   flex-direction: column;
   position: sticky;
-  top: 80px; /* Below the header */
-  height: calc(100vh - 80px);
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
   overflow-y: auto;
 }
 

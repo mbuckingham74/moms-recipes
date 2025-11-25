@@ -6,8 +6,10 @@ function Header() {
   const { user, loading, isAdmin } = useAuth();
   const location = useLocation();
 
-  // Check if current page is admin dashboard or any admin page
-  const isOnAdminPage = location.pathname.startsWith('/admin');
+  // Check if current page is admin dashboard or any admin page (including /add and /edit)
+  const isOnAdminPage = location.pathname.startsWith('/admin') ||
+    location.pathname === '/add' ||
+    location.pathname.startsWith('/edit');
 
   return (
     <header className="header">
@@ -17,8 +19,8 @@ function Header() {
         </Link>
         <nav className="nav">
           <Link to="/">Browse</Link>
-          {/* Only show Add Recipe to admins, hide while loading to prevent flash */}
-          {!loading && isAdmin() && <Link to="/add">Add Recipe</Link>}
+          {/* Only show Add Recipe to admins when NOT on admin pages (sidebar has it) */}
+          {!loading && isAdmin() && !isOnAdminPage && <Link to="/add">Add Recipe</Link>}
           {/* Show login link only when not loading and not logged in */}
           {!loading && !user && <Link to="/login">Admin Login</Link>}
           {/* Show admin dashboard link only when not loading and user is admin */}
