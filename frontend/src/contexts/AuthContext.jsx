@@ -19,8 +19,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
-    // Only check auth if there's an active session marker
-    // sessionStorage is cleared when browser is closed
+    // Only attempt to restore session if marker exists
+    // sessionStorage is cleared when browser is closed, ensuring logout on browser close
     if (!sessionStorage.getItem(SESSION_KEY)) {
       setLoading(false);
       return;
@@ -31,13 +31,19 @@ export const AuthProvider = ({ children }) => {
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
       } else {
+        // Server explicitly said not authenticated
         setUser(null);
         sessionStorage.removeItem(SESSION_KEY);
       }
-    } catch {
-      // Not authenticated or token expired
-      setUser(null);
-      sessionStorage.removeItem(SESSION_KEY);
+    } catch (error) {
+      // Only clear session on 401 (invalid/expired token)
+      // Transient network/500 errors should not log user out
+      if (error.response?.status === 401) {
+        setUser(null);
+        sessionStorage.removeItem(SESSION_KEY);
+      }
+      // On other errors, just leave user as null but don't clear marker
+      // so they can retry on next navigation
     } finally {
       setLoading(false);
     }
