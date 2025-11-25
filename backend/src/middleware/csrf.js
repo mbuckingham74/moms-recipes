@@ -19,7 +19,7 @@ const getCsrfSecret = () => {
 };
 
 const {
-  generateToken,
+  generateCsrfToken,
   doubleCsrfProtection
 } = doubleCsrf({
   getSecret: () => getCsrfSecret(),
@@ -39,7 +39,7 @@ const {
 // Middleware to generate and send CSRF token
 const csrfToken = (req, res, next) => {
   try {
-    const token = generateToken(req, res);
+    const token = generateCsrfToken(req, res);
     // Make token available for response
     res.locals.csrfToken = token;
     next();
@@ -63,7 +63,7 @@ const csrfProtection = (req, res, next) => {
 
 // Endpoint to get CSRF token
 const getCsrfToken = (req, res) => {
-  const token = generateToken(req, res);
+  const token = generateCsrfToken(req, res);
   res.json({ csrfToken: token });
 };
 
@@ -71,5 +71,5 @@ module.exports = {
   csrfToken,
   csrfProtection,
   getCsrfToken,
-  generateToken
+  generateCsrfToken
 };
