@@ -24,9 +24,13 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUser(null);
       }
-    } catch {
-      // Not authenticated or token expired
-      setUser(null);
+    } catch (error) {
+      // Only clear auth on 401 (invalid/expired token)
+      // Transient network/500 errors should not log user out
+      if (error.response?.status === 401) {
+        setUser(null);
+      }
+      // On other errors, leave user as null until page refresh
     } finally {
       setLoading(false);
     }

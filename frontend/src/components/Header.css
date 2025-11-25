@@ -50,6 +50,11 @@
   color: var(--terracotta);
 }
 
+.user-greeting {
+  color: var(--terracotta);
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
   .header {
     padding: 0 1rem;

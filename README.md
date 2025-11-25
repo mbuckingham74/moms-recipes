@@ -52,7 +52,8 @@ AI analyzes your recipe's ingredients and portions to estimate calories per serv
 - Responsive design with warm kitchen color palette
 
 ### Admin Features 🔐
-- **Authentication**: Secure JWT-based login with httpOnly cookies
+- **Authentication**: Secure JWT-based login with httpOnly cookies (30-day sessions)
+- **Personalized Greeting**: Header displays "Hello, {username}!" when logged in
 - **Persistent Admin Sidebar**: Quick Actions navigation visible on all admin pages
   - Dashboard, Upload PDF, Import from URL, Add Recipe, Review Pending, All Recipes, AI Settings
   - Responsive design (collapses on mobile)
@@ -293,7 +294,7 @@ Content-Type: application/json
 }
 ```
 
-Sets httpOnly cookie with JWT token.
+Sets httpOnly cookie with JWT token (30-day expiration).
 
 #### Logout
 ```http
