@@ -23,6 +23,13 @@ const {
   doubleCsrfProtection
 } = doubleCsrf({
   getSecret: () => getCsrfSecret(),
+  // Session identifier for CSRF token binding
+  // Uses IP + User-Agent as identifier for non-session based auth
+  getSessionIdentifier: (req) => {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    return `${ip}-${userAgent}`;
+  },
   cookieName: '__Host-csrf',
   cookieOptions: {
     httpOnly: true,
@@ -30,7 +37,7 @@ const {
     secure: process.env.NODE_ENV === 'production',
     path: '/'
   },
-  getTokenFromRequest: (req) => {
+  getCsrfTokenFromRequest: (req) => {
     // Check header first, then body
     return req.headers['x-csrf-token'] || req.body?._csrf;
   }
