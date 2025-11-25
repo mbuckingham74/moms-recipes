@@ -185,6 +185,125 @@ ${recipeText}`;
   }
 
   /**
+   * Parse recipe from unstructured web page content
+   * Used when no JSON-LD structured data is available
+   * @param {Object} pageContent - Extracted page content
+   * @param {string} pageContent.title - Page title
+   * @param {string} pageContent.content - Main text content
+   * @param {string} pageContent.hostname - Source hostname
+   * @param {string} sourceUrl - Original URL
+   * @returns {Promise<Object>} - Parsed recipe object
+   */
+  static async parseRecipeFromWebPage(pageContent, sourceUrl) {
+    if (!isClaudeAvailable()) {
+      throw new Error('Recipe parsing requires Claude AI. Please configure ANTHROPIC_API_KEY.');
+    }
+
+    const systemPrompt = `You are a recipe parsing assistant. Your job is to extract structured recipe information from web page content.
+
+IMPORTANT: You must respond with ONLY valid JSON. No markdown code blocks, no explanations, just pure JSON.
+
+The JSON structure should be:
+{
+  "title": "Recipe name",
+  "source": "Website or author name",
+  "category": "Recipe category (e.g., Appetizers, Main Courses, Desserts, Snacks, etc.)",
+  "description": "Brief 1-2 sentence description of the recipe",
+  "ingredients": [
+    {
+      "name": "ingredient name",
+      "quantity": "amount (e.g., '2', '1/2', '1.5')",
+      "unit": "unit of measurement (e.g., 'cups', 'tbsp', 'grams', 'whole')"
+    }
+  ],
+  "instructions": "Step by step cooking instructions as a single text block",
+  "tags": ["tag1", "tag2"],
+  "servings": <number or null>
+}
+
+Guidelines:
+- Extract the recipe title (look for heading patterns, recipe name mentions)
+- Set source to the website name (from hostname) or author if mentioned
+- Identify the category based on the dish type
+- Create a brief description summarizing what the recipe is (1-2 sentences)
+- Parse ingredients carefully:
+  * Separate quantity, unit, and ingredient name
+  * Use "whole" or "piece" for countable items without units
+  * Keep fractions as strings: "1/2", "1/4", etc.
+- Extract and format instructions as numbered steps
+- Generate 3-5 relevant tags based on meal type, cuisine, main ingredients, cooking method, dietary restrictions
+- Extract servings/yield if mentioned
+- Ignore ads, comments, navigation, and non-recipe content
+- If the page doesn't appear to contain a recipe, return: {"error": "No recipe found on this page"}`;
+
+    const userMessage = `Extract the recipe from this web page content.
+
+Source URL: ${sourceUrl}
+Website: ${pageContent.hostname}
+Page Title: ${pageContent.title}
+
+Page Content:
+${pageContent.content}`;
+
+    try {
+      const response = await this.sendMessage(userMessage, systemPrompt);
+
+      // Try to extract JSON from response
+      let jsonStr = response.trim();
+
+      // Remove markdown code blocks if present
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.replace(/^```json\n/, '').replace(/\n```$/, '');
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.replace(/^```\n/, '').replace(/\n```$/, '');
+      }
+
+      const parsed = JSON.parse(jsonStr);
+
+      // Check if Claude couldn't find a recipe
+      if (parsed.error) {
+        throw new Error(parsed.error);
+      }
+
+      // Validate and set defaults
+      if (!parsed.title) {
+        parsed.title = pageContent.title || 'Untitled Recipe';
+      }
+
+      if (!parsed.source) {
+        parsed.source = pageContent.hostname;
+      }
+
+      if (!parsed.category) {
+        parsed.category = null;
+      }
+
+      if (!parsed.description) {
+        parsed.description = null;
+      }
+
+      if (!Array.isArray(parsed.ingredients)) {
+        parsed.ingredients = [];
+      }
+
+      if (!parsed.instructions) {
+        parsed.instructions = '';
+      }
+
+      if (!Array.isArray(parsed.tags)) {
+        parsed.tags = [];
+      }
+
+      return parsed;
+    } catch (error) {
+      if (error.message.includes('No recipe found')) {
+        throw error;
+      }
+      throw new Error(`Recipe parsing failed: ${error.message}`);
+    }
+  }
+
+  /**
    * Estimate calories for a recipe
    * @param {Object} recipe - Recipe with ingredients
    * @returns {Promise<Object>} - Calorie estimation with confidence
