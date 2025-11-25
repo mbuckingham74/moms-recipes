@@ -5,6 +5,8 @@ const dns = require('dns').promises;
 const MAX_RESPONSE_SIZE = 5 * 1024 * 1024;
 // Request timeout in milliseconds
 const REQUEST_TIMEOUT = 15000;
+// Maximum number of redirects to follow
+const MAX_REDIRECTS = 5;
 
 // Private/internal IP ranges that should be blocked (SSRF protection)
 const BLOCKED_IP_RANGES = [
@@ -52,7 +54,7 @@ class UrlScraper {
   }
 
   /**
-   * Resolve hostname and check if it points to a blocked IP
+   * Resolve hostname and check if it points to a blocked IP (both IPv4 and IPv6)
    * @param {string} hostname - Hostname to resolve
    * @returns {Promise<void>} - Throws if blocked
    */
@@ -62,41 +64,75 @@ class UrlScraper {
       throw new Error('Access to internal/private hosts is not allowed.');
     }
 
-    // Check if hostname is already an IP address
-    if (/^[\d.]+$/.test(hostname) || hostname.includes(':')) {
+    // Check if hostname is already an IP address (IPv4 or IPv6)
+    if (/^[\d.]+$/.test(hostname)) {
+      // IPv4 literal
       if (this.isBlockedIp(hostname)) {
         throw new Error('Access to private/internal IP addresses is not allowed.');
       }
       return;
     }
 
-    // Resolve hostname to IP and check
+    // Check for IPv6 literal (may be bracketed in URLs)
+    const ipv6Match = hostname.match(/^\[?([a-fA-F0-9:]+)\]?$/);
+    if (ipv6Match) {
+      if (this.isBlockedIp(ipv6Match[1])) {
+        throw new Error('Access to private/internal IP addresses is not allowed.');
+      }
+      return;
+    }
+
+    // Resolve hostname to IPs and check both A (IPv4) and AAAA (IPv6) records
+    let hasAnyRecords = false;
+
+    // Check IPv4 (A records)
     try {
-      const addresses = await dns.resolve4(hostname);
-      for (const ip of addresses) {
+      const ipv4Addresses = await dns.resolve4(hostname);
+      hasAnyRecords = true;
+      for (const ip of ipv4Addresses) {
         if (this.isBlockedIp(ip)) {
           throw new Error('This URL resolves to a private/internal IP address and cannot be accessed.');
         }
       }
     } catch (err) {
-      if (err.code === 'ENOTFOUND') {
-        throw new Error('Could not resolve hostname. Please check the URL.');
+      // ENODATA means no A records, which is fine if AAAA records exist
+      if (err.code !== 'ENODATA' && err.code !== 'ENOTFOUND') {
+        if (err.message.includes('private') || err.message.includes('internal')) {
+          throw err;
+        }
       }
-      // For other DNS errors, check if the error is about blocked IPs
-      if (err.message.includes('private') || err.message.includes('internal')) {
-        throw err;
+    }
+
+    // Check IPv6 (AAAA records)
+    try {
+      const ipv6Addresses = await dns.resolve6(hostname);
+      hasAnyRecords = true;
+      for (const ip of ipv6Addresses) {
+        if (this.isBlockedIp(ip)) {
+          throw new Error('This URL resolves to a private/internal IPv6 address and cannot be accessed.');
+        }
       }
-      // Otherwise continue - let fetch handle it
+    } catch (err) {
+      // ENODATA means no AAAA records, which is fine if A records exist
+      if (err.code !== 'ENODATA' && err.code !== 'ENOTFOUND') {
+        if (err.message.includes('private') || err.message.includes('internal')) {
+          throw err;
+        }
+      }
+    }
+
+    // If no DNS records at all, throw error
+    if (!hasAnyRecords) {
+      throw new Error('Could not resolve hostname. Please check the URL.');
     }
   }
 
   /**
-   * Fetch and extract recipe content from a URL
-   * @param {string} url - The URL to scrape
-   * @returns {Promise<Object>} - Extracted content with source URL
+   * Validate and parse a URL, ensuring it's HTTP/HTTPS
+   * @param {string} url - URL to validate
+   * @returns {URL} - Parsed URL object
    */
-  static async scrape(url) {
-    // Validate URL
+  static validateUrl(url) {
     let parsedUrl;
     try {
       parsedUrl = new URL(url);
@@ -106,26 +142,69 @@ class UrlScraper {
     } catch {
       throw new Error('Invalid URL. Please provide a valid HTTP or HTTPS URL.');
     }
+    return parsedUrl;
+  }
 
-    // SSRF protection: validate hostname doesn't resolve to internal/private IPs
+  /**
+   * Fetch a URL with manual redirect handling to validate each redirect destination
+   * @param {string} url - URL to fetch
+   * @param {AbortSignal} signal - Abort signal for timeout
+   * @param {number} redirectCount - Current redirect count
+   * @returns {Promise<Response>} - Final response
+   */
+  static async fetchWithSafeRedirects(url, signal, redirectCount = 0) {
+    if (redirectCount > MAX_REDIRECTS) {
+      throw new Error('Too many redirects. Please try a different URL.');
+    }
+
+    // Validate the URL and its hostname before each request
+    const parsedUrl = this.validateUrl(url);
     await this.validateHostname(parsedUrl.hostname);
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; MomsRecipesBot/1.0; +https://moms-recipes.tachyonfuture.com)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+      redirect: 'manual', // Don't automatically follow redirects
+      signal,
+    });
+
+    // Handle redirects manually to validate each destination
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+      if (!location) {
+        throw new Error('Redirect response missing Location header.');
+      }
+
+      // Resolve relative redirects against current URL
+      const redirectUrl = new URL(location, url).href;
+
+      // Recursively fetch the redirect destination (will validate hostname)
+      return this.fetchWithSafeRedirects(redirectUrl, signal, redirectCount + 1);
+    }
+
+    return response;
+  }
+
+  /**
+   * Fetch and extract recipe content from a URL
+   * @param {string} url - The URL to scrape
+   * @returns {Promise<Object>} - Extracted content with source URL
+   */
+  static async scrape(url) {
+    // Validate initial URL
+    const parsedUrl = this.validateUrl(url);
 
     // Set up abort controller for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-    // Fetch the page
+    // Fetch the page with safe redirect handling
     let response;
     try {
-      response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; MomsRecipesBot/1.0; +https://moms-recipes.tachyonfuture.com)',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-        },
-        redirect: 'follow',
-        signal: controller.signal,
-      });
+      response = await this.fetchWithSafeRedirects(url, controller.signal);
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -133,6 +212,11 @@ class UrlScraper {
     } catch (err) {
       if (err.name === 'AbortError') {
         throw new Error('Request timed out. The website took too long to respond.');
+      }
+      // Re-throw our own validation errors as-is
+      if (err.message.includes('private') || err.message.includes('internal') ||
+          err.message.includes('redirects') || err.message.includes('resolve')) {
+        throw err;
       }
       throw new Error(`Failed to fetch URL: ${err.message}`);
     } finally {
@@ -157,23 +241,27 @@ class UrlScraper {
     const html = await this.readResponseWithLimit(response, MAX_RESPONSE_SIZE);
     const $ = cheerio.load(html);
 
+    // Get final URL (may differ from original due to redirects)
+    const finalUrl = response.url || url;
+    const finalHostname = new URL(finalUrl).hostname;
+
     // Try to extract structured recipe data (JSON-LD)
     const structuredData = this.extractJsonLd($);
     if (structuredData) {
       return {
         type: 'structured',
-        source: url,
-        hostname: parsedUrl.hostname,
+        source: finalUrl,
+        hostname: finalHostname,
         data: structuredData,
       };
     }
 
     // Fall back to extracting page content for Claude to parse
-    const pageContent = this.extractPageContent($, parsedUrl.hostname);
+    const pageContent = this.extractPageContent($, finalHostname);
     return {
       type: 'unstructured',
-      source: url,
-      hostname: parsedUrl.hostname,
+      source: finalUrl,
+      hostname: finalHostname,
       data: pageContent,
     };
   }
