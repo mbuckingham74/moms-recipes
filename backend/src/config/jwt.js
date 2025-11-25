@@ -24,7 +24,7 @@ const getJwtSecret = () => {
 };
 
 const JWT_SECRET = getJwtSecret();
-const JWT_EXPIRES_IN = '7d'; // Token expires in 7 days
+const JWT_EXPIRES_IN = '30d'; // Token expires in 30 days
 
 module.exports = {
   JWT_SECRET,

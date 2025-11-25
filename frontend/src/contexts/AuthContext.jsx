@@ -12,38 +12,21 @@ export const useAuth = () => {
   return context;
 };
 
-const SESSION_KEY = 'auth_session_active';
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
-    // Only attempt to restore session if marker exists
-    // sessionStorage is cleared when browser is closed, ensuring logout on browser close
-    if (!sessionStorage.getItem(SESSION_KEY)) {
-      setLoading(false);
-      return;
-    }
-
     try {
       const response = await api.get('/auth/me');
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
       } else {
-        // Server explicitly said not authenticated
         setUser(null);
-        sessionStorage.removeItem(SESSION_KEY);
       }
-    } catch (error) {
-      // Only clear session on 401 (invalid/expired token)
-      // Transient network/500 errors should not log user out
-      if (error.response?.status === 401) {
-        setUser(null);
-        sessionStorage.removeItem(SESSION_KEY);
-      }
-      // On other errors, just leave user as null but don't clear marker
-      // so they can retry on next navigation
+    } catch {
+      // Not authenticated or token expired
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -53,7 +36,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     setAuthExpiredHandler(() => {
       setUser(null);
-      sessionStorage.removeItem(SESSION_KEY);
     });
     // Clean up handler on unmount to avoid setState calls after provider is torn down
     return () => setAuthExpiredHandler(null);
@@ -69,8 +51,6 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { username, password });
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
-        // Set session marker - cleared when browser closes
-        sessionStorage.setItem(SESSION_KEY, 'true');
         return { success: true };
       }
       return { success: false, error: 'Login failed' };
@@ -89,7 +69,6 @@ export const AuthProvider = ({ children }) => {
       // Ignore logout errors
     } finally {
       setUser(null);
-      sessionStorage.removeItem(SESSION_KEY);
     }
   };
 
