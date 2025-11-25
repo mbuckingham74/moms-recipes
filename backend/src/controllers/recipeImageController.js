@@ -43,11 +43,10 @@ class RecipeImageController {
         uploadedBy: req.user?.id || null
       };
 
-      await RecipeImageModel.create(imageData);
-      // Get sanitized version for response
-      const images = await RecipeImageModel.getByRecipeIdPublic(id);
-      const latestImage = images[images.length - 1];
-      uploadedImages.push(latestImage);
+      const createdImage = await RecipeImageModel.create(imageData);
+      // Get sanitized version for response using the specific ID
+      const sanitizedImage = await RecipeImageModel.getByIdPublic(createdImage.id);
+      uploadedImages.push(sanitizedImage);
     }
 
     res.status(201).json({
