@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import '../../styles/PendingRecipes.css';
@@ -8,11 +8,7 @@ function PendingRecipes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadPendingRecipes();
-  }, []);
-
-  const loadPendingRecipes = async () => {
+  const loadPendingRecipes = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -24,7 +20,11 @@ function PendingRecipes() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPendingRecipes();
+  }, [loadPendingRecipes]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this pending recipe?')) {
@@ -33,7 +33,8 @@ function PendingRecipes() {
 
     try {
       await api.delete(`/admin/pending-recipes/${id}`);
-      setRecipes(recipes.filter(recipe => recipe.id !== id));
+      // Use functional update to avoid stale closure issues
+      setRecipes(prev => prev.filter(recipe => recipe.id !== id));
     } catch (err) {
       alert('Failed to delete recipe');
       console.error(err);

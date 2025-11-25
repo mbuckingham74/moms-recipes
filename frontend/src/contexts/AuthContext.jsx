@@ -1,5 +1,5 @@
-import { createContext, useState, useContext, useEffect } from 'react';
-import api from '../services/api';
+import { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import api, { setAuthExpiredHandler } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -16,16 +16,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is logged in on mount
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       const response = await api.get('/auth/me');
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
+      } else {
+        setUser(null);
       }
     } catch {
       // Not authenticated or token expired
@@ -33,7 +30,21 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Register handler for 401 responses to clear auth state globally
+  useEffect(() => {
+    setAuthExpiredHandler(() => {
+      setUser(null);
+    });
+    // Clean up handler on unmount to avoid setState calls after provider is torn down
+    return () => setAuthExpiredHandler(null);
+  }, []);
+
+  // Check if user is logged in on mount
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const login = async (username, password) => {
     try {

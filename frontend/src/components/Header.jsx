@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import './Header.css';
 
 function Header() {
-  const { user, isAdmin } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const location = useLocation();
 
   // Check if current page is admin dashboard or any admin page
@@ -17,9 +17,12 @@ function Header() {
         </Link>
         <nav className="nav">
           <Link to="/">Browse</Link>
-          <Link to="/add">Add Recipe</Link>
-          {!user && <Link to="/login">Admin Login</Link>}
-          {isAdmin() && !isOnAdminPage && <Link to="/admin">Admin Dashboard</Link>}
+          {/* Only show Add Recipe to admins, hide while loading to prevent flash */}
+          {!loading && isAdmin() && <Link to="/add">Add Recipe</Link>}
+          {/* Show login link only when not loading and not logged in */}
+          {!loading && !user && <Link to="/login">Admin Login</Link>}
+          {/* Show admin dashboard link only when not loading and user is admin */}
+          {!loading && isAdmin() && !isOnAdminPage && <Link to="/admin">Admin Dashboard</Link>}
         </nav>
       </div>
     </header>
