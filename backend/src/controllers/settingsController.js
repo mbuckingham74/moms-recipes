@@ -75,11 +75,11 @@ exports.testAIConnection = asyncHandler(async (req, res) => {
 });
 
 /**
- * Clear stored API key (revert to environment variable)
+ * Clear stored API key for current provider (revert to environment variable)
  * DELETE /api/admin/settings/ai/api-key
  */
 exports.clearApiKey = asyncHandler(async (req, res) => {
-  await SettingsModel.delete(SettingsModel.KEYS.AI_API_KEY);
+  await SettingsModel.clearCurrentProviderApiKey();
 
   const config = await SettingsModel.getAIConfig();
 

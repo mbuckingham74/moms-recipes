@@ -66,7 +66,20 @@ const AI_PROVIDERS = {
 const SETTING_KEYS = {
   AI_PROVIDER: 'ai_provider',
   AI_MODEL: 'ai_model',
-  AI_API_KEY: 'ai_api_key'
+  // API keys are stored per provider to avoid sending wrong key when switching
+  AI_API_KEY_ANTHROPIC: 'ai_api_key_anthropic',
+  AI_API_KEY_OPENAI: 'ai_api_key_openai',
+  AI_API_KEY_GOOGLE: 'ai_api_key_google'
+};
+
+// Helper to get the API key setting name for a provider
+const getApiKeySettingName = (provider) => {
+  const keyMap = {
+    anthropic: SETTING_KEYS.AI_API_KEY_ANTHROPIC,
+    openai: SETTING_KEYS.AI_API_KEY_OPENAI,
+    google: SETTING_KEYS.AI_API_KEY_GOOGLE
+  };
+  return keyMap[provider] || SETTING_KEYS.AI_API_KEY_ANTHROPIC;
 };
 
 class SettingsModel {
@@ -135,7 +148,10 @@ class SettingsModel {
   static async getAIConfig() {
     const provider = await this.get(SETTING_KEYS.AI_PROVIDER) || 'anthropic';
     const model = await this.get(SETTING_KEYS.AI_MODEL);
-    const hasDbKey = !!(await this.get(SETTING_KEYS.AI_API_KEY));
+
+    // Check for provider-specific database key
+    const apiKeySettingName = getApiKeySettingName(provider);
+    const hasDbKey = !!(await this.get(apiKeySettingName));
 
     const providerConfig = AI_PROVIDERS[provider] || AI_PROVIDERS.anthropic;
     const hasEnvKey = !!process.env[providerConfig.envKey];
@@ -168,13 +184,17 @@ class SettingsModel {
    * @param {Object} config - AI configuration
    * @param {string} config.provider - Provider ID
    * @param {string} config.model - Model ID
-   * @param {string} config.apiKey - API key (optional, will be encrypted)
+   * @param {string} config.apiKey - API key (optional, will be encrypted and stored for the provider)
    * @param {number} userId - User making the change
    */
   static async setAIConfig({ provider, model, apiKey }, userId) {
     if (provider && !AI_PROVIDERS[provider]) {
       throw new Error(`Invalid AI provider: ${provider}`);
     }
+
+    // Determine which provider the API key should be stored for
+    // If provider is being changed, use the new provider; otherwise use current
+    const targetProvider = provider || (await this.get(SETTING_KEYS.AI_PROVIDER)) || 'anthropic';
 
     if (provider) {
       await this.set(SETTING_KEYS.AI_PROVIDER, provider, false, userId);
@@ -185,29 +205,41 @@ class SettingsModel {
     }
 
     // Only update API key if explicitly provided (even if empty to clear it)
+    // Store the key for the specific provider
     if (apiKey !== undefined) {
+      const apiKeySettingName = getApiKeySettingName(targetProvider);
       if (apiKey) {
-        await this.set(SETTING_KEYS.AI_API_KEY, apiKey, true, userId);
+        await this.set(apiKeySettingName, apiKey, true, userId);
       } else {
-        await this.delete(SETTING_KEYS.AI_API_KEY);
+        await this.delete(apiKeySettingName);
       }
     }
   }
 
   /**
    * Get the active API key for the configured provider
-   * Checks database first, then falls back to environment variable
+   * Checks provider-specific database key first, then falls back to environment variable
    */
   static async getActiveApiKey() {
     const provider = await this.get(SETTING_KEYS.AI_PROVIDER) || 'anthropic';
     const providerConfig = AI_PROVIDERS[provider];
 
-    // Database key takes precedence
-    const dbKey = await this.get(SETTING_KEYS.AI_API_KEY);
+    // Provider-specific database key takes precedence
+    const apiKeySettingName = getApiKeySettingName(provider);
+    const dbKey = await this.get(apiKeySettingName);
     if (dbKey) return dbKey;
 
-    // Fall back to environment variable
+    // Fall back to environment variable for this provider
     return process.env[providerConfig?.envKey] || null;
+  }
+
+  /**
+   * Clear the API key for the current provider
+   */
+  static async clearCurrentProviderApiKey() {
+    const provider = await this.get(SETTING_KEYS.AI_PROVIDER) || 'anthropic';
+    const apiKeySettingName = getApiKeySettingName(provider);
+    await this.delete(apiKeySettingName);
   }
 
   /**

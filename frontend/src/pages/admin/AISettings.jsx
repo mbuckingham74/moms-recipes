@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../../services/api';
 import '../../styles/AISettings.css';
 
@@ -17,13 +17,17 @@ function AISettings() {
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
 
+  // CSRF token
+  const csrfTokenRef = useRef('');
+
   const loadConfig = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      // Get CSRF token first
-      await api.get('/csrf-token');
+      // Get CSRF token first and store it
+      const csrfResponse = await api.get('/csrf-token');
+      csrfTokenRef.current = csrfResponse.data.csrfToken;
 
       const response = await api.get('/admin/settings/ai');
       const data = response.data.data;
@@ -83,7 +87,9 @@ function AISettings() {
         payload.apiKey = apiKey.trim();
       }
 
-      await api.put('/admin/settings/ai', payload);
+      await api.put('/admin/settings/ai', payload, {
+        headers: { 'x-csrf-token': csrfTokenRef.current }
+      });
 
       setSuccess('AI settings saved successfully');
       setApiKey(''); // Clear the API key field after saving
@@ -102,7 +108,9 @@ function AISettings() {
       setError('');
       setTestResult(null);
 
-      const response = await api.post('/admin/settings/ai/test');
+      const response = await api.post('/admin/settings/ai/test', {}, {
+        headers: { 'x-csrf-token': csrfTokenRef.current }
+      });
       setTestResult({
         success: true,
         ...response.data.data
@@ -128,7 +136,9 @@ function AISettings() {
       setError('');
       setSuccess('');
 
-      await api.delete('/admin/settings/ai/api-key');
+      await api.delete('/admin/settings/ai/api-key', {
+        headers: { 'x-csrf-token': csrfTokenRef.current }
+      });
 
       setSuccess('API key cleared successfully');
       await loadConfig();
