@@ -45,7 +45,10 @@ A full-stack recipe organization web application for managing and searching thro
 
 ### Admin Features 🔐
 - **Authentication**: Secure JWT-based login with httpOnly cookies
-- **Admin Dashboard**: View stats and manage recipes (click Total Recipes to view table)
+- **Persistent Admin Sidebar**: Quick Actions navigation visible on all admin pages
+  - Dashboard, Upload PDF, Import from URL, Add Recipe, Review Pending, All Recipes
+  - Responsive design (collapses on mobile)
+- **Admin Dashboard**: View stats and metrics (clickable cards for navigation)
 - **Admin Recipes Table**: Sortable table view of all recipes with:
   - Name (clickable link to recipe)
   - Category (first tag)
@@ -113,9 +116,14 @@ moms-recipes/
 ├── frontend/                     # React application
 │   ├── src/
 │   │   ├── components/          # Reusable UI components
+│   │   │   ├── AdminLayout.jsx  # Admin sidebar layout wrapper
+│   │   │   ├── Header.jsx       # Main site header
+│   │   │   └── ProtectedRoute.jsx
 │   │   ├── pages/               # Page components
+│   │   │   └── admin/           # Admin panel pages
+│   │   ├── styles/              # Component-specific CSS
 │   │   ├── services/            # API integration
-│   │   └── utils/               # Helper functions
+│   │   └── contexts/            # React context providers
 │   ├── public/
 │   └── index.html
 ├── .env                          # Environment variables
