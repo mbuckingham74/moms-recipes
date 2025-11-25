@@ -11,6 +11,20 @@ jobs:
     name: Test and Build
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: moms_recipes_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,6 +44,11 @@ jobs:
         run: npm test
         env:
           NODE_ENV: test
+          TEST_DB_HOST: 127.0.0.1
+          TEST_DB_PORT: 3306
+          TEST_DB_USER: root
+          TEST_DB_PASSWORD: testpassword
+          TEST_DB_NAME: moms_recipes_test
 
       - name: Install frontend dependencies
         working-directory: frontend
