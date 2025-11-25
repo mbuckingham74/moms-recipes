@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api, { recipeAPI } from '../services/api';
 import { getTagClass, formatDate } from '../utils/recipeHelpers';
+import { getImageUrl } from '../utils/urlHelpers';
 import { useAuth } from '../contexts/AuthContext';
 import './RecipeDetail.css';
 
@@ -17,6 +18,7 @@ function RecipeDetail() {
   const [calorieError, setCalorieError] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
   const [savingRecipe, setSavingRecipe] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const loadRecipe = useCallback(async (signal) => {
     try {
@@ -197,9 +199,51 @@ function RecipeDetail() {
           </div>
         </div>
 
-        {recipe.imagePath && (
-          <div className="recipe-image-large">
-            <img src={recipe.imagePath} alt={recipe.title} />
+        {/* Recipe Images Section */}
+        {(recipe.heroImage || recipe.imagePath || (recipe.images && recipe.images.length > 0)) && (
+          <div className="recipe-images-section">
+            {/* Hero Image */}
+            <div className="recipe-image-large">
+              {recipe.heroImage ? (
+                <img src={getImageUrl(recipe.heroImage)} alt={recipe.title} />
+              ) : recipe.imagePath ? (
+                <img src={getImageUrl(recipe.imagePath)} alt={recipe.title} />
+              ) : recipe.images && recipe.images.length > 0 ? (
+                <img src={getImageUrl(recipe.images[0].url)} alt={recipe.title} />
+              ) : null}
+            </div>
+
+            {/* Image Gallery (if more than 1 image) */}
+            {recipe.images && recipe.images.length > 1 && (
+              <div className="recipe-gallery">
+                {recipe.images.map((image) => (
+                  <button
+                    key={image.id}
+                    className={`gallery-thumb ${image.isHero ? 'is-hero' : ''}`}
+                    onClick={() => setSelectedImage(image)}
+                    type="button"
+                  >
+                    <img src={getImageUrl(image.url)} alt={image.originalName} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Image Lightbox */}
+        {selectedImage && (
+          <div className="image-lightbox" onClick={() => setSelectedImage(null)}>
+            <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="lightbox-close"
+                onClick={() => setSelectedImage(null)}
+                type="button"
+              >
+                ✕
+              </button>
+              <img src={getImageUrl(selectedImage.url)} alt={selectedImage.originalName} />
+            </div>
           </div>
         )}
 

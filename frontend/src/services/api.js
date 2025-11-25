@@ -112,6 +112,31 @@ export const recipeAPI = {
   estimateCalories: (id, config = {}) => {
     return api.post(`/recipes/${id}/estimate-calories`, {}, config);
   },
+
+  // Get images for a recipe
+  getImages: (id, config = {}) => {
+    return api.get(`/recipes/${id}/images`, config);
+  },
+
+  // Upload images for a recipe
+  uploadImages: (id, formData, config = {}) => {
+    return api.post(`/recipes/${id}/images`, formData, config);
+  },
+
+  // Set hero image
+  setHeroImage: (recipeId, imageId, config = {}) => {
+    return api.put(`/recipes/${recipeId}/images/${imageId}/hero`, {}, config);
+  },
+
+  // Delete image
+  deleteImage: (recipeId, imageId, config = {}) => {
+    return api.delete(`/recipes/${recipeId}/images/${imageId}`, config);
+  },
+
+  // Reorder images
+  reorderImages: (id, imageOrder, config = {}) => {
+    return api.put(`/recipes/${id}/images/reorder`, { imageOrder }, config);
+  },
 };
 
 // Handle errors globally

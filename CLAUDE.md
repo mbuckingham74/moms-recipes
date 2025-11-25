@@ -34,6 +34,22 @@ Key implementation details:
 - Submission counts use a dedicated endpoint for accuracy (not filtered from paginated results)
 - Admin reviews submissions at `/admin/user-submissions`
 
+## Recipe Images
+
+Admins can upload images for recipes. The system supports:
+
+- **Hero image**: The main display image shown on recipe cards and detail pages
+- **Gallery images**: Additional images viewable in a lightbox on the detail page
+- Images are stored in `backend/uploads/images/` with UUID filenames
+- Supported formats: JPEG, PNG, GIF, WebP (max 5MB each)
+- API responses use sanitized URLs (`/uploads/images/filename.jpg`) - never expose server file paths
+- When a recipe is deleted, all associated image files are removed from disk
+
+Key implementation details:
+- `RecipeImageModel` handles CRUD with `getByIdPublic()`/`getByRecipeIdPublic()` for sanitized responses
+- Frontend uses `urlHelpers.js` to construct proper image URLs (handles `/api` suffix stripping)
+- Image ownership is validated in reorder endpoint to prevent manipulation
+
 ## Environment Variables (Production Required)
 
 - `DB_PASSWORD` - MySQL password

@@ -1,7 +1,9 @@
 const express = require('express');
 const RecipeController = require('../controllers/recipeController');
+const RecipeImageController = require('../controllers/recipeImageController');
 const { authenticate, requireAdmin } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
+const { uploadImage, handleMulterError } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -27,5 +29,47 @@ router.post('/recipes/:id/cooked', authenticate, requireAdmin, csrfProtection, R
 
 // Tags (public, read-only)
 router.get('/tags', RecipeController.getAllTags);
+
+// Recipe image routes (admin-only)
+// Get images for a recipe (public, read-only)
+router.get('/recipes/:id/images', RecipeImageController.getImages);
+
+// Upload images (admin-only, requires CSRF)
+router.post(
+  '/recipes/:id/images',
+  authenticate,
+  requireAdmin,
+  csrfProtection,
+  uploadImage.array('images', 10),
+  handleMulterError,
+  RecipeImageController.uploadImages
+);
+
+// Set hero image (admin-only, requires CSRF)
+router.put(
+  '/recipes/:recipeId/images/:imageId/hero',
+  authenticate,
+  requireAdmin,
+  csrfProtection,
+  RecipeImageController.setHeroImage
+);
+
+// Reorder images (admin-only, requires CSRF)
+router.put(
+  '/recipes/:id/images/reorder',
+  authenticate,
+  requireAdmin,
+  csrfProtection,
+  RecipeImageController.reorderImages
+);
+
+// Delete image (admin-only, requires CSRF)
+router.delete(
+  '/recipes/:recipeId/images/:imageId',
+  authenticate,
+  requireAdmin,
+  csrfProtection,
+  RecipeImageController.deleteImage
+);
 
 module.exports = router;

@@ -1,15 +1,28 @@
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { getTagClass, formatDate } from '../utils/recipeHelpers';
+import { getImageUrl } from '../utils/urlHelpers';
 import './RecipeCard.css';
 
 function RecipeCard({ recipe }) {
+  // Determine the image to display: heroImage (uploaded), imagePath (legacy), or placeholder
+  const getDisplayImage = () => {
+    if (recipe.heroImage) {
+      return getImageUrl(recipe.heroImage);
+    }
+    if (recipe.imagePath) {
+      return getImageUrl(recipe.imagePath);
+    }
+    return null;
+  };
+
+  const displayImage = getDisplayImage();
 
   return (
     <Link to={`/recipe/${recipe.id}`} className="recipe-card">
       <div className="recipe-image">
-        {recipe.imagePath ? (
-          <img src={recipe.imagePath} alt={recipe.title} />
+        {displayImage ? (
+          <img src={displayImage} alt={recipe.title} />
         ) : (
           <div className="recipe-placeholder">🍽️</div>
         )}
@@ -45,6 +58,7 @@ RecipeCard.propTypes = {
     title: PropTypes.string.isRequired,
     source: PropTypes.string,
     imagePath: PropTypes.string,
+    heroImage: PropTypes.string,
     tags: PropTypes.arrayOf(PropTypes.string),
     dateAdded: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   }).isRequired,

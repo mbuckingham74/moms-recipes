@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const RecipeImageModel = require('./recipeImageModel');
 
 // Helper to convert snake_case to camelCase
 const toCamelCase = (obj) => {
@@ -88,10 +89,18 @@ class RecipeModel {
       ORDER BY position
     `).all(id);
 
+    // Get images (sanitized - no server paths exposed)
+    const images = await RecipeImageModel.getByRecipeIdPublic(id);
+
     // Convert to camelCase and parse tags
     const camelRecipe = toCamelCase(recipe);
     camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
     camelRecipe.ingredients = ingredients.map(toCamelCase);
+    camelRecipe.images = images;
+
+    // Set heroImage for convenience (first hero image or first image)
+    const heroImage = images.find(img => img.isHero) || images[0] || null;
+    camelRecipe.heroImage = heroImage ? heroImage.url : null;
 
     return camelRecipe;
   }
@@ -105,7 +114,11 @@ class RecipeModel {
     const recipes = await db.prepare(`
       SELECT
         r.id, r.title, r.source, r.date_added, r.image_path,
-        GROUP_CONCAT(DISTINCT t.name) as tags
+        GROUP_CONCAT(DISTINCT t.name) as tags,
+        (SELECT ri.filename FROM recipe_images ri
+         WHERE ri.recipe_id = r.id
+         ORDER BY ri.is_hero DESC, ri.position ASC
+         LIMIT 1) as hero_image_filename
       FROM recipes r
       LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
       LEFT JOIN tags t ON rt.tag_id = t.id
@@ -117,6 +130,12 @@ class RecipeModel {
     return recipes.map(recipe => {
       const camelRecipe = toCamelCase(recipe);
       camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      // Set heroImage URL if there's an uploaded image
+      if (recipe.hero_image_filename) {
+        camelRecipe.heroImage = `/uploads/images/${recipe.hero_image_filename}`;
+      } else {
+        camelRecipe.heroImage = null;
+      }
       return camelRecipe;
     });
   }
@@ -127,7 +146,11 @@ class RecipeModel {
     const recipes = await db.prepare(`
       SELECT DISTINCT
         r.id, r.title, r.source, r.date_added, r.image_path,
-        GROUP_CONCAT(DISTINCT t.name) as tags
+        GROUP_CONCAT(DISTINCT t.name) as tags,
+        (SELECT ri.filename FROM recipe_images ri
+         WHERE ri.recipe_id = r.id
+         ORDER BY ri.is_hero DESC, ri.position ASC
+         LIMIT 1) as hero_image_filename
       FROM recipes r
       JOIN ingredients i ON r.id = i.recipe_id
       LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
@@ -140,6 +163,9 @@ class RecipeModel {
     return recipes.map(recipe => {
       const camelRecipe = toCamelCase(recipe);
       camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      camelRecipe.heroImage = recipe.hero_image_filename
+        ? `/uploads/images/${recipe.hero_image_filename}`
+        : null;
       return camelRecipe;
     });
   }
@@ -157,7 +183,11 @@ class RecipeModel {
     const recipes = await db.prepare(`
       SELECT
         r.id, r.title, r.source, r.date_added, r.image_path,
-        GROUP_CONCAT(DISTINCT t.name) as tags
+        GROUP_CONCAT(DISTINCT t.name) as tags,
+        (SELECT ri.filename FROM recipe_images ri
+         WHERE ri.recipe_id = r.id
+         ORDER BY ri.is_hero DESC, ri.position ASC
+         LIMIT 1) as hero_image_filename
       FROM recipes r
       LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
       LEFT JOIN tags t ON rt.tag_id = t.id
@@ -175,6 +205,9 @@ class RecipeModel {
     return recipes.map(recipe => {
       const camelRecipe = toCamelCase(recipe);
       camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      camelRecipe.heroImage = recipe.hero_image_filename
+        ? `/uploads/images/${recipe.hero_image_filename}`
+        : null;
       return camelRecipe;
     });
   }
@@ -191,7 +224,11 @@ class RecipeModel {
     const recipes = await db.prepare(`
       SELECT DISTINCT
         r.id, r.title, r.source, r.date_added, r.image_path,
-        GROUP_CONCAT(DISTINCT t2.name) as tags
+        GROUP_CONCAT(DISTINCT t2.name) as tags,
+        (SELECT ri.filename FROM recipe_images ri
+         WHERE ri.recipe_id = r.id
+         ORDER BY ri.is_hero DESC, ri.position ASC
+         LIMIT 1) as hero_image_filename
       FROM recipes r
       JOIN recipe_tags rt ON r.id = rt.recipe_id
       JOIN tags t ON rt.tag_id = t.id
@@ -205,6 +242,9 @@ class RecipeModel {
     return recipes.map(recipe => {
       const camelRecipe = toCamelCase(recipe);
       camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      camelRecipe.heroImage = recipe.hero_image_filename
+        ? `/uploads/images/${recipe.hero_image_filename}`
+        : null;
       return camelRecipe;
     });
   }
@@ -215,7 +255,11 @@ class RecipeModel {
     const recipes = await db.prepare(`
       SELECT
         r.id, r.title, r.source, r.date_added, r.image_path,
-        GROUP_CONCAT(DISTINCT t.name) as tags
+        GROUP_CONCAT(DISTINCT t.name) as tags,
+        (SELECT ri.filename FROM recipe_images ri
+         WHERE ri.recipe_id = r.id
+         ORDER BY ri.is_hero DESC, ri.position ASC
+         LIMIT 1) as hero_image_filename
       FROM recipes r
       LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
       LEFT JOIN tags t ON rt.tag_id = t.id
@@ -227,6 +271,9 @@ class RecipeModel {
     return recipes.map(recipe => {
       const camelRecipe = toCamelCase(recipe);
       camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      camelRecipe.heroImage = recipe.hero_image_filename
+        ? `/uploads/images/${recipe.hero_image_filename}`
+        : null;
       return camelRecipe;
     });
   }
@@ -240,7 +287,11 @@ class RecipeModel {
     let query = `
       SELECT DISTINCT
         r.id, r.title, r.source, r.date_added, r.image_path,
-        GROUP_CONCAT(DISTINCT t2.name) as tags
+        GROUP_CONCAT(DISTINCT t2.name) as tags,
+        (SELECT ri.filename FROM recipe_images ri
+         WHERE ri.recipe_id = r.id
+         ORDER BY ri.is_hero DESC, ri.position ASC
+         LIMIT 1) as hero_image_filename
       FROM recipes r
       LEFT JOIN recipe_tags rt ON r.id = rt.recipe_id
       LEFT JOIN tags t2 ON rt.tag_id = t2.id
@@ -298,6 +349,9 @@ class RecipeModel {
     return recipes.map(recipe => {
       const camelRecipe = toCamelCase(recipe);
       camelRecipe.tags = recipe.tags ? recipe.tags.split(',') : [];
+      camelRecipe.heroImage = recipe.hero_image_filename
+        ? `/uploads/images/${recipe.hero_image_filename}`
+        : null;
       return camelRecipe;
     });
   }
@@ -366,6 +420,10 @@ class RecipeModel {
 
   // Delete recipe
   static async delete(id) {
+    // Delete associated image files from disk before removing DB records
+    // (FK cascade will delete recipe_images rows, but not the actual files)
+    await RecipeImageModel.deleteByRecipeId(id);
+
     const stmt = db.prepare('DELETE FROM recipes WHERE id = ?');
     const result = await stmt.run(id);
 
