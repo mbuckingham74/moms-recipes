@@ -72,6 +72,14 @@ function AdminLayout({ children }) {
             <span className="sidebar-icon">📚</span>
             <span className="sidebar-text">All Recipes</span>
           </NavLink>
+
+          <NavLink
+            to="/"
+            className="sidebar-link"
+          >
+            <span className="sidebar-icon">🏠</span>
+            <span className="sidebar-text">Home</span>
+          </NavLink>
         </nav>
 
         <div className="sidebar-footer">
