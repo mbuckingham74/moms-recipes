@@ -7,15 +7,20 @@ const recipeRoutes = require('./routes/recipeRoutes');
 const authRoutes = require('./routes/authRoutes');
 const pdfRoutes = require('./routes/pdfRoutes');
 const { errorHandler } = require('./middleware/errorHandler');
+const { getCsrfToken } = require('./middleware/csrf');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Validate FRONTEND_URL in production
-if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
-  console.error('ERROR: FRONTEND_URL must be set in production environment');
-  console.error('Please set FRONTEND_URL in your .env file or environment variables');
-  process.exit(1);
+// Validate required environment variables in production
+if (process.env.NODE_ENV === 'production') {
+  const requiredEnvVars = ['FRONTEND_URL', 'JWT_SECRET', 'CSRF_SECRET', 'DB_PASSWORD'];
+  const missing = requiredEnvVars.filter(v => !process.env[v]);
+
+  if (missing.length > 0) {
+    console.error(`FATAL: Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
 }
 
 // Middleware
@@ -32,6 +37,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// CSRF token endpoint - must be called before state-changing requests
+app.get('/api/csrf-token', getCsrfToken);
 
 // Routes
 app.use('/api/auth', authRoutes);

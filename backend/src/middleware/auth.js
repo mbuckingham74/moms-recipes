@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { ApiError } = require('./errorHandler');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const { JWT_SECRET } = require('../config/jwt');
 
 /**
  * Authenticate user from JWT token in cookie

@@ -58,9 +58,10 @@ A full-stack recipe organization web application for managing and searching thro
 ### Backend
 - **Runtime**: Node.js 20
 - **Framework**: Express 5.1.0
-- **Database**: MySQL 8 (production) / SQLite (development)
+- **Database**: MySQL 8 (all environments)
 - **Authentication**: JWT + bcrypt with httpOnly cookies
-- **AI Integration**: Anthropic Claude for recipe parsing
+- **Security**: CSRF protection on state-changing routes
+- **AI Integration**: Anthropic Claude for recipe parsing (optional)
 - **File Processing**: Multer + pdf-parse for PDF uploads
 - **Testing**: Jest + Supertest (80% coverage)
 - **Features**: CORS, validation, error handling, async/await
@@ -81,18 +82,20 @@ moms-recipes/
 ├── backend/                      # Backend application
 │   ├── src/                      # Backend source code
 │   │   ├── config/
-│   │   │   └── database.js      # Database connection and schema
+│   │   │   ├── database.js      # MySQL connection and schema
+│   │   │   └── jwt.js           # JWT configuration
 │   │   ├── models/
 │   │   │   └── recipeModel.js   # Recipe data operations
 │   │   ├── controllers/
 │   │   │   └── recipeController.js  # Request handlers
 │   │   ├── middleware/
-│   │   │   └── errorHandler.js  # Centralized error handling
+│   │   │   ├── errorHandler.js  # Centralized error handling
+│   │   │   ├── auth.js          # JWT authentication
+│   │   │   └── csrf.js          # CSRF protection
 │   │   ├── routes/
 │   │   │   └── recipeRoutes.js  # API routes
 │   │   └── server.js            # Express server setup
 │   ├── tests/                    # Backend integration tests
-│   ├── data/                     # SQLite database files
 │   └── uploads/                  # Recipe image files
 ├── frontend/                     # React application
 │   ├── src/
@@ -453,10 +456,10 @@ curl http://localhost:3001/api/recipes/search?title=bread
 
 ## Development Notes
 
-- SQLite database file is created automatically on first run in `backend/data/recipes.db`
+- MySQL is required for all environments (development, test, production)
 - Uploaded images should be stored in `backend/uploads/` directory
 - All timestamps are stored as Unix epoch seconds
-- Database uses `better-sqlite3` for synchronous operations (faster and simpler)
+- Database schema is automatically created on first run
 
 ## Environment Variables
 
@@ -466,10 +469,20 @@ Create a `.env` file (see `.env.example` for template):
 PORT=3001
 NODE_ENV=development
 
-# Authentication
-JWT_SECRET=your-secret-key-change-in-production
+# Database (MySQL required)
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your-mysql-password
+DB_NAME=moms_recipes
 
-# Anthropic API
+# Authentication (required - min 32 chars in production)
+JWT_SECRET=your-secret-key-change-in-production-min-32-chars
+
+# CSRF Protection (required in production)
+CSRF_SECRET=your-csrf-secret-change-in-production
+
+# Anthropic API (optional - AI features disabled if not set)
 ANTHROPIC_API_KEY=your-anthropic-api-key-here
 
 # Admin Users (for seed script)
@@ -477,13 +490,23 @@ ADMIN1_USERNAME=your-admin-username
 ADMIN1_PASSWORD=your-secure-password
 ADMIN1_EMAIL=your-email@example.com
 
-# Optional: Second admin
-ADMIN2_USERNAME=second-admin-username
-ADMIN2_PASSWORD=second-secure-password
-ADMIN2_EMAIL=second-email@example.com
-
-# Production CORS
+# Production CORS (required in production)
 # FRONTEND_URL=https://moms-recipes.tachyonfuture.com
 ```
 
 **Security:** See [SECURITY_GUIDELINES.md](SECURITY_GUIDELINES.md) for credential management best practices.
+
+### Required Environment Variables (Production)
+
+| Variable | Description |
+|----------|-------------|
+| `DB_PASSWORD` | MySQL database password |
+| `JWT_SECRET` | JWT signing secret (min 32 characters) |
+| `CSRF_SECRET` | CSRF protection secret |
+| `FRONTEND_URL` | Frontend URL for CORS |
+
+### Optional Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `ANTHROPIC_API_KEY` | Enables AI features (PDF parsing, calorie estimation) |

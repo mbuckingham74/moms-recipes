@@ -1,8 +1,5 @@
 const db = require('../config/database');
 
-// Detect if we're using MySQL (async) or SQLite (sync)
-const isMySQL = process.env.NODE_ENV === 'production' || process.env.USE_MYSQL === 'true';
-
 // Helper to convert snake_case to camelCase
 const toCamelCase = (obj) => {
   if (!obj || typeof obj !== 'object') return obj;
@@ -15,116 +12,56 @@ const toCamelCase = (obj) => {
   }, {});
 };
 
-// Helper to handle current timestamp based on database type
-const getCurrentTimestamp = () => {
-  if (isMySQL) {
-    return 'UNIX_TIMESTAMP()';
-  } else {
-    return "strftime('%s', 'now')";
-  }
-};
-
 class RecipeModel {
   // Create a new recipe with ingredients and tags
   static async create(recipeData) {
     const { title, source, instructions, imagePath, ingredients, tags } = recipeData;
 
-    let recipeId;
+    // Use async transaction with connection-bound db
+    const insert = db.transaction(async (txDb) => {
+      // Insert recipe using transaction-bound connection
+      const recipeStmt = txDb.prepare(`
+        INSERT INTO recipes (title, source, instructions, image_path)
+        VALUES (?, ?, ?, ?)
+      `);
+      const result = await recipeStmt.run(title, source, instructions, imagePath);
+      const recipeId = result.lastInsertRowid;
 
-    if (isMySQL) {
-      // MySQL: Use async transaction with connection-bound db
-      const insert = db.transaction(async (txDb) => {
-        // Insert recipe using transaction-bound connection
-        const recipeStmt = txDb.prepare(`
-          INSERT INTO recipes (title, source, instructions, image_path)
-          VALUES (?, ?, ?, ?)
+      // Insert ingredients
+      if (ingredients && ingredients.length > 0) {
+        const ingredientStmt = txDb.prepare(`
+          INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
+          VALUES (?, ?, ?, ?, ?)
         `);
-        const result = await recipeStmt.run(title, source, instructions, imagePath);
-        const recipeId = result.lastInsertRowid;
-
-        // Insert ingredients
-        if (ingredients && ingredients.length > 0) {
-          const ingredientStmt = txDb.prepare(`
-            INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
-            VALUES (?, ?, ?, ?, ?)
-          `);
-          for (let index = 0; index < ingredients.length; index++) {
-            const ing = ingredients[index];
-            await ingredientStmt.run(
-              recipeId,
-              ing.name,
-              ing.quantity || null,
-              ing.unit || null,
-              index
-            );
-          }
+        for (let index = 0; index < ingredients.length; index++) {
+          const ing = ingredients[index];
+          await ingredientStmt.run(
+            recipeId,
+            ing.name,
+            ing.quantity || null,
+            ing.unit || null,
+            index
+          );
         }
+      }
 
-        // Insert tags
-        if (tags && tags.length > 0) {
-          const tagStmt = txDb.prepare(`INSERT IGNORE INTO tags (name) VALUES (?)`);
-          const getTagStmt = txDb.prepare(`SELECT id FROM tags WHERE name = ?`);
-          const recipeTagStmt = txDb.prepare(`INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)`);
+      // Insert tags
+      if (tags && tags.length > 0) {
+        const tagStmt = txDb.prepare(`INSERT IGNORE INTO tags (name) VALUES (?)`);
+        const getTagStmt = txDb.prepare(`SELECT id FROM tags WHERE name = ?`);
+        const recipeTagStmt = txDb.prepare(`INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)`);
 
-          for (const tagName of tags) {
-            await tagStmt.run(tagName);
-            const tag = await getTagStmt.get(tagName);
-            await recipeTagStmt.run(recipeId, tag.id);
-          }
+        for (const tagName of tags) {
+          await tagStmt.run(tagName);
+          const tag = await getTagStmt.get(tagName);
+          await recipeTagStmt.run(recipeId, tag.id);
         }
+      }
 
-        return recipeId;
-      });
+      return recipeId;
+    });
 
-      recipeId = await insert();
-    } else {
-      // SQLite: Use synchronous transaction (no async/await inside!)
-      const insert = db.transaction(() => {
-        // Insert recipe
-        const recipeStmt = db.prepare(`
-          INSERT INTO recipes (title, source, instructions, image_path)
-          VALUES (?, ?, ?, ?)
-        `);
-        const result = recipeStmt.run(title, source, instructions, imagePath);
-        const newRecipeId = result.lastInsertRowid;
-
-        // Insert ingredients
-        if (ingredients && ingredients.length > 0) {
-          const ingredientStmt = db.prepare(`
-            INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
-            VALUES (?, ?, ?, ?, ?)
-          `);
-          for (let index = 0; index < ingredients.length; index++) {
-            const ing = ingredients[index];
-            ingredientStmt.run(
-              newRecipeId,
-              ing.name,
-              ing.quantity || null,
-              ing.unit || null,
-              index
-            );
-          }
-        }
-
-        // Insert tags (SQLite uses INSERT OR IGNORE)
-        if (tags && tags.length > 0) {
-          const tagStmt = db.prepare(`INSERT OR IGNORE INTO tags (name) VALUES (?)`);
-          const getTagStmt = db.prepare(`SELECT id FROM tags WHERE name = ?`);
-          const recipeTagStmt = db.prepare(`INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)`);
-
-          for (const tagName of tags) {
-            tagStmt.run(tagName);
-            const tag = getTagStmt.get(tagName);
-            recipeTagStmt.run(newRecipeId, tag.id);
-          }
-        }
-
-        return newRecipeId;
-      });
-
-      recipeId = insert();
-    }
-
+    const recipeId = await insert();
     return this.getById(recipeId);
   }
 
@@ -369,111 +306,57 @@ class RecipeModel {
   static async update(id, recipeData) {
     const { title, source, instructions, imagePath, ingredients, tags } = recipeData;
 
-    if (isMySQL) {
-      // MySQL: Use async transaction with connection-bound db
-      const update = db.transaction(async (txDb) => {
-        // Update recipe using transaction-bound connection
-        const updateStmt = txDb.prepare(`
-          UPDATE recipes
-          SET title = ?, source = ?, instructions = ?, image_path = ?, updated_at = UNIX_TIMESTAMP()
-          WHERE id = ?
-        `);
-        await updateStmt.run(title, source, instructions, imagePath, id);
+    // Use async transaction with connection-bound db
+    const update = db.transaction(async (txDb) => {
+      // Update recipe using transaction-bound connection
+      const updateStmt = txDb.prepare(`
+        UPDATE recipes
+        SET title = ?, source = ?, instructions = ?, image_path = ?, updated_at = UNIX_TIMESTAMP()
+        WHERE id = ?
+      `);
+      await updateStmt.run(title, source, instructions, imagePath, id);
 
-        // Delete and re-insert ingredients if provided
-        if (ingredients !== undefined) {
-          await txDb.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
+      // Delete and re-insert ingredients if provided
+      if (ingredients !== undefined) {
+        await txDb.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
 
-          if (ingredients.length > 0) {
-            const ingredientStmt = txDb.prepare(`
-              INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
-              VALUES (?, ?, ?, ?, ?)
-            `);
-            for (let index = 0; index < ingredients.length; index++) {
-              const ing = ingredients[index];
-              await ingredientStmt.run(
-                id,
-                ing.name,
-                ing.quantity || null,
-                ing.unit || null,
-                index
-              );
-            }
+        if (ingredients.length > 0) {
+          const ingredientStmt = txDb.prepare(`
+            INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
+            VALUES (?, ?, ?, ?, ?)
+          `);
+          for (let index = 0; index < ingredients.length; index++) {
+            const ing = ingredients[index];
+            await ingredientStmt.run(
+              id,
+              ing.name,
+              ing.quantity || null,
+              ing.unit || null,
+              index
+            );
           }
         }
+      }
 
-        // Delete and re-insert tags if provided
-        if (tags !== undefined) {
-          await txDb.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
+      // Delete and re-insert tags if provided
+      if (tags !== undefined) {
+        await txDb.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
 
-          if (tags.length > 0) {
-            const tagStmt = txDb.prepare('INSERT IGNORE INTO tags (name) VALUES (?)');
-            const getTagStmt = txDb.prepare('SELECT id FROM tags WHERE name = ?');
-            const recipeTagStmt = txDb.prepare('INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)');
+        if (tags.length > 0) {
+          const tagStmt = txDb.prepare('INSERT IGNORE INTO tags (name) VALUES (?)');
+          const getTagStmt = txDb.prepare('SELECT id FROM tags WHERE name = ?');
+          const recipeTagStmt = txDb.prepare('INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)');
 
-            for (const tagName of tags) {
-              await tagStmt.run(tagName);
-              const tag = await getTagStmt.get(tagName);
-              await recipeTagStmt.run(id, tag.id);
-            }
+          for (const tagName of tags) {
+            await tagStmt.run(tagName);
+            const tag = await getTagStmt.get(tagName);
+            await recipeTagStmt.run(id, tag.id);
           }
         }
-      });
+      }
+    });
 
-      await update();
-    } else {
-      // SQLite: Use synchronous transaction (no async/await inside!)
-      const update = db.transaction(() => {
-        // Update recipe using SQLite timestamp function
-        const updateStmt = db.prepare(`
-          UPDATE recipes
-          SET title = ?, source = ?, instructions = ?, image_path = ?, updated_at = strftime('%s', 'now')
-          WHERE id = ?
-        `);
-        updateStmt.run(title, source, instructions, imagePath, id);
-
-        // Delete and re-insert ingredients if provided
-        if (ingredients !== undefined) {
-          db.prepare('DELETE FROM ingredients WHERE recipe_id = ?').run(id);
-
-          if (ingredients.length > 0) {
-            const ingredientStmt = db.prepare(`
-              INSERT INTO ingredients (recipe_id, name, quantity, unit, position)
-              VALUES (?, ?, ?, ?, ?)
-            `);
-            for (let index = 0; index < ingredients.length; index++) {
-              const ing = ingredients[index];
-              ingredientStmt.run(
-                id,
-                ing.name,
-                ing.quantity || null,
-                ing.unit || null,
-                index
-              );
-            }
-          }
-        }
-
-        // Delete and re-insert tags if provided
-        if (tags !== undefined) {
-          db.prepare('DELETE FROM recipe_tags WHERE recipe_id = ?').run(id);
-
-          if (tags.length > 0) {
-            const tagStmt = db.prepare('INSERT OR IGNORE INTO tags (name) VALUES (?)');
-            const getTagStmt = db.prepare('SELECT id FROM tags WHERE name = ?');
-            const recipeTagStmt = db.prepare('INSERT INTO recipe_tags (recipe_id, tag_id) VALUES (?, ?)');
-
-            for (const tagName of tags) {
-              tagStmt.run(tagName);
-              const tag = getTagStmt.get(tagName);
-              recipeTagStmt.run(id, tag.id);
-            }
-          }
-        }
-      });
-
-      update();
-    }
+    await update();
 
     // Clean up orphaned tags after update (in case tags were removed)
     await this.cleanupOrphanedTags();
@@ -522,7 +405,7 @@ class RecipeModel {
   static async updateCalories(id, { estimatedCalories, caloriesConfidence }) {
     const stmt = db.prepare(`
       UPDATE recipes
-      SET estimated_calories = ?, calories_confidence = ?, updated_at = ${getCurrentTimestamp()}
+      SET estimated_calories = ?, calories_confidence = ?, updated_at = UNIX_TIMESTAMP()
       WHERE id = ?
     `);
     await stmt.run(estimatedCalories, caloriesConfidence, id);

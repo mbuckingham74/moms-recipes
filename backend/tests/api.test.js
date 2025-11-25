@@ -1,15 +1,16 @@
 const request = require('supertest');
-const fs = require('fs');
-const path = require('path');
-
-// Create a test database in a temporary location
-const testDbPath = path.join(__dirname, '../data/test-recipes.db');
 
 // Set test environment variables before requiring the app
 process.env.NODE_ENV = 'test';
 process.env.PORT = 3002;
-process.env.DB_PATH = testDbPath;
-process.env.JWT_SECRET = 'test-secret-key';
+process.env.JWT_SECRET = 'test-secret-key-for-testing-only-32chars';
+process.env.CSRF_SECRET = 'test-csrf-secret-for-testing-only';
+// MySQL test database - uses environment variables or defaults
+process.env.DB_HOST = process.env.TEST_DB_HOST || 'localhost';
+process.env.DB_PORT = process.env.TEST_DB_PORT || '3306';
+process.env.DB_USER = process.env.TEST_DB_USER || 'root';
+process.env.DB_PASSWORD = process.env.TEST_DB_PASSWORD || 'test';
+process.env.DB_NAME = process.env.TEST_DB_NAME || 'moms_recipes_test';
 
 // Require modules after setting environment variables
 const db = require('../src/config/database');
@@ -18,6 +19,20 @@ const UserModel = require('../src/models/userModel');
 
 // Global test user and auth token
 let authToken = null;
+let csrfToken = null;
+
+// Helper function to get CSRF token
+const getCsrfToken = async () => {
+  const response = await request(app)
+    .get('/api/csrf-token');
+
+  // Extract CSRF token from response
+  csrfToken = response.body.csrfToken;
+
+  // Extract CSRF cookie for subsequent requests
+  const cookies = response.headers['set-cookie'];
+  return { csrfToken, cookies };
+};
 
 // Helper function to create a test admin user and login
 const setupTestAuth = async () => {
@@ -46,6 +61,9 @@ const setupTestAuth = async () => {
         authToken = tokenCookie.split(';')[0].split('=')[1];
       }
     }
+
+    // Get CSRF token after login
+    await getCsrfToken();
   } catch (error) {
     console.error('Failed to setup test auth:', error);
   }
@@ -69,6 +87,7 @@ const createTestRecipe = async (overrides = {}) => {
   const response = await request(app)
     .post('/api/recipes')
     .set('Cookie', [`token=${authToken}`])
+    .set('x-csrf-token', csrfToken)
     .send({ ...defaultRecipe, ...overrides });
 
   return response.body.recipe;
@@ -77,9 +96,10 @@ const createTestRecipe = async (overrides = {}) => {
 describe('Recipe API Integration Tests', () => {
   // Clean up test database before and after tests
   beforeAll(async () => {
-    // Database is already initialized by requiring the modules
+    // Wait for database initialization
+    await db.ensureInitialized();
     // Clear any existing data
-    db.clearDatabase();
+    await db.clearDatabase();
     // Setup authentication
     await setupTestAuth();
   });
@@ -87,22 +107,16 @@ describe('Recipe API Integration Tests', () => {
   afterEach(async () => {
     // Clear only recipe data between tests to ensure test isolation
     // Keep users (including test admin) to maintain auth
-    const stmt = db.prepare('DELETE FROM recipes');
-    await stmt.run();
-    const stmtIngredients = db.prepare('DELETE FROM ingredients');
-    await stmtIngredients.run();
-    const stmtTags = db.prepare('DELETE FROM recipe_tags');
-    await stmtTags.run();
+    const pool = db.getPool();
+    await pool.execute('DELETE FROM recipe_tags');
+    await pool.execute('DELETE FROM ingredients');
+    await pool.execute('DELETE FROM tags');
+    await pool.execute('DELETE FROM recipes');
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     // Close database connection
-    db.closeDatabase();
-
-    // Clean up test database file
-    if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
-    }
+    await db.closeDatabase();
   });
 
   describe('Health Check', () => {
@@ -137,6 +151,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .post('/api/recipes')
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send(recipeData)
           .expect(201);
 
@@ -151,6 +166,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .post('/api/recipes')
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send({
             source: 'Test Source',
             ingredients: []
@@ -165,6 +181,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .post('/api/recipes')
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send({
             title: 'Test Recipe',
             ingredients: [{ quantity: '1', unit: 'cup' }]
@@ -182,6 +199,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .post('/api/recipes')
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send({
             title: 'Test Recipe',
             tags: [123, 'valid-tag']
@@ -199,6 +217,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .post('/api/recipes')
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send({
             title: 'Tag Test Recipe',
             tags: ['Dessert', 'dessert', 'DESSERT', 'cookies', 'Cookies']
@@ -212,6 +231,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .post('/api/recipes')
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send({
             title: 'Trim Test Recipe',
             ingredients: [
@@ -359,6 +379,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .put(`/api/recipes/${recipe.id}`)
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send({
             title: 'Updated Test Recipe',
             tags: ['updated', 'test']
@@ -376,6 +397,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .put(`/api/recipes/${recipe.id}`)
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send({
             tags: ['UPDATED', 'updated', 'Test']
           })
@@ -388,6 +410,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .put('/api/recipes/99999')
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send({ title: 'New Title' })
           .expect(404);
 
@@ -400,6 +423,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .put(`/api/recipes/${recipe.id}`)
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .send({
             ingredients: [{ quantity: '1' }] // missing name
           })
@@ -435,6 +459,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .delete(`/api/recipes/${recipe.id}`)
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .expect(200);
 
         expect(response.body.message).toBe('Recipe deleted successfully');
@@ -449,6 +474,7 @@ describe('Recipe API Integration Tests', () => {
         const response = await request(app)
           .delete('/api/recipes/99999')
           .set('Cookie', [`token=${authToken}`])
+          .set('x-csrf-token', csrfToken)
           .expect(404);
 
         expect(response.body.error).toBe('Recipe not found');
@@ -475,6 +501,29 @@ describe('Recipe API Integration Tests', () => {
 
       // Should get 404 from static middleware, not route not found
       expect(response.status).toBe(404);
+    });
+  });
+
+  describe('CSRF Protection', () => {
+    test('should reject state-changing requests without CSRF token', async () => {
+      const response = await request(app)
+        .post('/api/recipes')
+        .set('Cookie', [`token=${authToken}`])
+        .send({
+          title: 'Test Recipe'
+        })
+        .expect(403);
+
+      expect(response.body.error).toContain('CSRF');
+    });
+
+    test('should provide CSRF token endpoint', async () => {
+      const response = await request(app)
+        .get('/api/csrf-token')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('csrfToken');
+      expect(typeof response.body.csrfToken).toBe('string');
     });
   });
 });
