@@ -20,6 +20,7 @@ const UserModel = require('../src/models/userModel');
 // Global test user and auth token
 let authToken = null;
 let csrfToken = null;
+let csrfCookie = null;
 
 // Helper function to get CSRF token
 const getCsrfToken = async () => {
@@ -29,8 +30,15 @@ const getCsrfToken = async () => {
   // Extract CSRF token from response
   csrfToken = response.body.csrfToken;
 
-  // Extract CSRF cookie for subsequent requests
+  // Extract CSRF cookie for subsequent requests (double-submit pattern)
   const cookies = response.headers['set-cookie'];
+  if (cookies && cookies.length > 0) {
+    // Find the CSRF cookie (__Host-csrf or similar)
+    const csrfCookieHeader = cookies.find(cookie => cookie.includes('csrf'));
+    if (csrfCookieHeader) {
+      csrfCookie = csrfCookieHeader.split(';')[0];
+    }
+  }
   return { csrfToken, cookies };
 };
 
@@ -69,6 +77,14 @@ const setupTestAuth = async () => {
   }
 };
 
+// Helper to build cookie string with both auth and CSRF cookies
+const buildCookieString = () => {
+  const cookies = [];
+  if (authToken) cookies.push(`token=${authToken}`);
+  if (csrfCookie) cookies.push(csrfCookie);
+  return cookies;
+};
+
 // Helper function to create a test recipe
 const createTestRecipe = async (overrides = {}) => {
   const defaultRecipe = {
@@ -86,7 +102,7 @@ const createTestRecipe = async (overrides = {}) => {
 
   const response = await request(app)
     .post('/api/recipes')
-    .set('Cookie', [`token=${authToken}`])
+    .set('Cookie', buildCookieString())
     .set('x-csrf-token', csrfToken)
     .send({ ...defaultRecipe, ...overrides });
 
@@ -150,7 +166,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .post('/api/recipes')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send(recipeData)
           .expect(201);
@@ -165,7 +181,7 @@ describe('Recipe API Integration Tests', () => {
       test('should fail without title', async () => {
         const response = await request(app)
           .post('/api/recipes')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send({
             source: 'Test Source',
@@ -180,7 +196,7 @@ describe('Recipe API Integration Tests', () => {
       test('should fail with invalid ingredient (missing name)', async () => {
         const response = await request(app)
           .post('/api/recipes')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send({
             title: 'Test Recipe',
@@ -198,7 +214,7 @@ describe('Recipe API Integration Tests', () => {
       test('should fail with invalid tag (non-string)', async () => {
         const response = await request(app)
           .post('/api/recipes')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send({
             title: 'Test Recipe',
@@ -216,7 +232,7 @@ describe('Recipe API Integration Tests', () => {
       test('should normalize tags to lowercase and dedupe', async () => {
         const response = await request(app)
           .post('/api/recipes')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send({
             title: 'Tag Test Recipe',
@@ -230,7 +246,7 @@ describe('Recipe API Integration Tests', () => {
       test('should trim ingredient values', async () => {
         const response = await request(app)
           .post('/api/recipes')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send({
             title: 'Trim Test Recipe',
@@ -378,7 +394,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .put(`/api/recipes/${recipe.id}`)
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send({
             title: 'Updated Test Recipe',
@@ -396,7 +412,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .put(`/api/recipes/${recipe.id}`)
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send({
             tags: ['UPDATED', 'updated', 'Test']
@@ -409,7 +425,7 @@ describe('Recipe API Integration Tests', () => {
       test('should return 404 for non-existent recipe', async () => {
         const response = await request(app)
           .put('/api/recipes/99999')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send({ title: 'New Title' })
           .expect(404);
@@ -422,7 +438,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .put(`/api/recipes/${recipe.id}`)
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .send({
             ingredients: [{ quantity: '1' }] // missing name
@@ -458,7 +474,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .delete(`/api/recipes/${recipe.id}`)
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .expect(200);
 
@@ -473,7 +489,7 @@ describe('Recipe API Integration Tests', () => {
       test('should return 404 for non-existent recipe', async () => {
         const response = await request(app)
           .delete('/api/recipes/99999')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .expect(404);
 
@@ -499,7 +515,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .get('/api/admin/recipes')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .expect(200);
 
         expect(response.body).toHaveProperty('recipes');
@@ -523,7 +539,7 @@ describe('Recipe API Integration Tests', () => {
 
         const responseAsc = await request(app)
           .get('/api/admin/recipes?sortBy=title&sortOrder=ASC')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .expect(200);
 
         const titlesAsc = responseAsc.body.recipes.map(r => r.title);
@@ -531,7 +547,7 @@ describe('Recipe API Integration Tests', () => {
 
         const responseDesc = await request(app)
           .get('/api/admin/recipes?sortBy=title&sortOrder=DESC')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .expect(200);
 
         const titlesDesc = responseDesc.body.recipes.map(r => r.title);
@@ -541,7 +557,7 @@ describe('Recipe API Integration Tests', () => {
       test('should support sorting by times_cooked', async () => {
         const response = await request(app)
           .get('/api/admin/recipes?sortBy=times_cooked&sortOrder=DESC')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .expect(200);
 
         expect(response.body).toHaveProperty('recipes');
@@ -550,7 +566,7 @@ describe('Recipe API Integration Tests', () => {
       test('should reject invalid sort columns', async () => {
         const response = await request(app)
           .get('/api/admin/recipes?sortBy=invalid_column')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .expect(200);
 
         // Should fall back to default sort (date_added)
@@ -572,7 +588,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .post(`/api/recipes/${recipe.id}/cooked`)
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .expect(200);
 
@@ -582,7 +598,7 @@ describe('Recipe API Integration Tests', () => {
         // Increment again
         const response2 = await request(app)
           .post(`/api/recipes/${recipe.id}/cooked`)
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .expect(200);
 
@@ -592,7 +608,7 @@ describe('Recipe API Integration Tests', () => {
       test('should return 404 for non-existent recipe', async () => {
         const response = await request(app)
           .post('/api/recipes/99999/cooked')
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .set('x-csrf-token', csrfToken)
           .expect(404);
 
@@ -604,7 +620,7 @@ describe('Recipe API Integration Tests', () => {
 
         const response = await request(app)
           .post(`/api/recipes/${recipe.id}/cooked`)
-          .set('Cookie', [`token=${authToken}`])
+          .set('Cookie', buildCookieString())
           .expect(403);
 
         expect(response.body.error).toContain('CSRF');
@@ -649,7 +665,7 @@ describe('Recipe API Integration Tests', () => {
     test('should reject state-changing requests without CSRF token', async () => {
       const response = await request(app)
         .post('/api/recipes')
-        .set('Cookie', [`token=${authToken}`])
+        .set('Cookie', buildCookieString())
         .send({
           title: 'Test Recipe'
         })
