@@ -240,7 +240,8 @@ describe('Recipe API Integration Tests', () => {
           })
           .expect(201);
 
-        expect(response.body.recipe.tags).toEqual(['dessert', 'cookies']);
+        // Sort both arrays for comparison since MySQL doesn't guarantee order
+        expect(response.body.recipe.tags.sort()).toEqual(['cookies', 'dessert']);
       });
 
       test('should trim ingredient values', async () => {
@@ -404,7 +405,8 @@ describe('Recipe API Integration Tests', () => {
 
         expect(response.body.message).toBe('Recipe updated successfully');
         expect(response.body.recipe.title).toBe('Updated Test Recipe');
-        expect(response.body.recipe.tags).toEqual(['updated', 'test']);
+        // Sort for comparison since MySQL doesn't guarantee order
+        expect(response.body.recipe.tags.sort()).toEqual(['test', 'updated']);
       });
 
       test('should normalize tags on update', async () => {
@@ -419,7 +421,8 @@ describe('Recipe API Integration Tests', () => {
           })
           .expect(200);
 
-        expect(response.body.recipe.tags).toEqual(['updated', 'test']);
+        // Sort for comparison since MySQL doesn't guarantee order
+        expect(response.body.recipe.tags.sort()).toEqual(['test', 'updated']);
       });
 
       test('should return 404 for non-existent recipe', async () => {
