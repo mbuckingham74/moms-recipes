@@ -45,7 +45,14 @@ A full-stack recipe organization web application for managing and searching thro
 
 ### Admin Features 🔐
 - **Authentication**: Secure JWT-based login with httpOnly cookies
-- **Admin Dashboard**: View stats and manage recipes
+- **Admin Dashboard**: View stats and manage recipes (click Total Recipes to view table)
+- **Admin Recipes Table**: Sortable table view of all recipes with:
+  - Name (clickable link to recipe)
+  - Category (first tag)
+  - Main Ingredient
+  - Calories per Serving
+  - Date Added
+  - Times Cooked (for tracking cooking history)
 - **PDF Recipe Upload**: AI-powered recipe parsing with Anthropic Claude
   - Upload PDF recipes (text-based PDFs supported)
   - Automatic extraction of title, ingredients, instructions, and tags
@@ -126,6 +133,8 @@ moms-recipes/
 - `date_added` (INTEGER, Unix timestamp)
 - `instructions` (TEXT)
 - `image_path` (TEXT)
+- `estimated_calories` (INTEGER, nullable)
+- `times_cooked` (INTEGER, default 0)
 - `created_at`, `updated_at`
 
 **ingredients**
@@ -406,6 +415,26 @@ Only include fields you want to update.
 DELETE /api/recipes/:id
 Authorization: Required (admin)
 ```
+
+#### Mark Recipe as Cooked
+```http
+POST /api/recipes/:id/cooked
+Authorization: Required (admin)
+```
+
+Increments the `times_cooked` counter for tracking cooking history.
+
+### Admin - Recipe Management
+
+#### Get Admin Recipe List
+```http
+GET /api/admin/recipes?limit=50&offset=0&sortBy=date_added&sortOrder=DESC
+Authorization: Required (admin)
+```
+
+Returns a table-optimized list with columns: id, title, category (first tag), mainIngredient (first ingredient), estimatedCalories, dateAdded, timesCooked.
+
+**Sort options:** `title`, `date_added`, `estimated_calories`, `times_cooked`
 
 ### Tags
 

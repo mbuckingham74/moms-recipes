@@ -327,5 +327,41 @@ static async create({ fileId, title, ...data }) {
 
 ---
 
+---
+
+## Feature Additions (2025-11-24)
+
+### 11. ✅ Admin Recipes Table View
+**Feature:** Added a new admin page for viewing all recipes in a sortable table format.
+
+**Changes:**
+- **Backend:**
+  - Added `times_cooked` column to recipes table (for tracking cooking history)
+  - Added `getAdminList()` method to RecipeModel with category and main ingredient extraction
+  - Added `GET /api/admin/recipes` endpoint with sorting and pagination
+  - Added `POST /api/recipes/:id/cooked` endpoint to increment times cooked
+  - Added index on `times_cooked` column for sorting performance
+
+- **Frontend:**
+  - Created `AdminRecipes.jsx` page with sortable table
+  - Columns: Name (clickable), Category, Main Ingredient, Calories/Serving, Date Added, Times Cooked
+  - Made "Total Recipes" metric on Dashboard clickable to navigate to table
+  - Added pagination support
+
+**Files Added/Modified:**
+- `backend/src/config/database.js` - Added times_cooked column and index
+- `backend/src/models/recipeModel.js` - Added getAdminList(), incrementTimesCooked()
+- `backend/src/controllers/recipeController.js` - Added getAdminRecipeList, incrementTimesCooked handlers
+- `backend/src/routes/recipeRoutes.js` - Added new endpoints
+- `frontend/src/pages/admin/AdminRecipes.jsx` - New page
+- `frontend/src/styles/AdminRecipes.css` - New styles
+- `frontend/src/pages/admin/Dashboard.jsx` - Clickable metric
+- `frontend/src/App.jsx` - New route
+
+**Test:** Navigate to Dashboard → Click "Total Recipes" → View sortable table
+
+---
+
 *Original Fixes: 2025-11-21 (Commit: d98e820)*
 *Additional Fixes: 2025-11-23 (Commits: cdf449d, 7605c5c)*
+*Feature Additions: 2025-11-24 (PR #5)*
