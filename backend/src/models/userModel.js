@@ -202,7 +202,7 @@ class UserModel {
   }
 
   /**
-   * Update user preferences
+   * Update user preferences (upsert - creates if not exists)
    * @param {number} userId
    * @param {Object} preferences
    * @returns {Promise<void>}
@@ -210,13 +210,14 @@ class UserModel {
   static async updatePreferences(userId, { theme }) {
     const timestamp = Math.floor(Date.now() / 1000);
 
+    // Use INSERT ... ON DUPLICATE KEY UPDATE for MySQL upsert
     const stmt = db.prepare(`
-      UPDATE user_preferences
-      SET theme = ?, updated_at = ?
-      WHERE user_id = ?
+      INSERT INTO user_preferences (user_id, theme, created_at, updated_at)
+      VALUES (?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE theme = VALUES(theme), updated_at = VALUES(updated_at)
     `);
 
-    await stmt.run(theme, timestamp, userId);
+    await stmt.run(userId, theme, timestamp, timestamp);
   }
 
   /**

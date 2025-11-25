@@ -23,6 +23,7 @@ router.delete('/saved-recipes/:recipeId', authenticate, csrfProtection, savedRec
 
 // Recipe submissions routes
 router.get('/submissions', authenticate, submittedRecipeController.getMySubmissions);
+router.get('/submissions/counts', authenticate, submittedRecipeController.getMySubmissionCounts);
 router.get('/submissions/:id', authenticate, submittedRecipeController.getSubmission);
 router.post('/submissions', authenticate, csrfProtection, submittedRecipeController.submitRecipe);
 router.delete('/submissions/:id', authenticate, csrfProtection, submittedRecipeController.deleteSubmission);

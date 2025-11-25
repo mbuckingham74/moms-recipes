@@ -10,6 +10,10 @@ export const setAuthExpiredHandler = (handler) => {
   authExpiredHandler = handler;
 };
 
+// CSRF token cache
+let csrfToken = null;
+let csrfTokenPromise = null;
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -18,13 +22,48 @@ const api = axios.create({
   withCredentials: true, // Important for cookies
 });
 
-// Request interceptor to handle FormData properly
+// Fetch CSRF token (with deduplication to prevent multiple simultaneous requests)
+const fetchCsrfToken = async () => {
+  if (csrfTokenPromise) {
+    return csrfTokenPromise;
+  }
+  csrfTokenPromise = axios.get(`${API_BASE_URL}/csrf-token`, { withCredentials: true })
+    .then(response => {
+      csrfToken = response.data.csrfToken;
+      csrfTokenPromise = null;
+      return csrfToken;
+    })
+    .catch(err => {
+      csrfTokenPromise = null;
+      throw err;
+    });
+  return csrfTokenPromise;
+};
+
+// Request interceptor to handle FormData and CSRF tokens
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     // If the data is FormData, remove Content-Type header to let browser set it with boundary
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
     }
+
+    // Add CSRF token for mutating requests (POST, PUT, DELETE, PATCH)
+    const mutatingMethods = ['post', 'put', 'delete', 'patch'];
+    if (mutatingMethods.includes(config.method?.toLowerCase())) {
+      // Fetch CSRF token if we don't have one
+      if (!csrfToken) {
+        try {
+          await fetchCsrfToken();
+        } catch (err) {
+          console.error('Failed to fetch CSRF token:', err);
+        }
+      }
+      if (csrfToken) {
+        config.headers['x-csrf-token'] = csrfToken;
+      }
+    }
+
     return config;
   },
   (error) => {
@@ -78,7 +117,24 @@ export const recipeAPI = {
 // Handle errors globally
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle 403 CSRF token invalid - refresh token and retry once
+    if (error.response?.status === 403 &&
+        error.response?.data?.error?.includes('CSRF') &&
+        !originalRequest._csrfRetry) {
+      originalRequest._csrfRetry = true;
+      csrfToken = null; // Clear cached token
+      try {
+        await fetchCsrfToken();
+        originalRequest.headers['x-csrf-token'] = csrfToken;
+        return api(originalRequest);
+      } catch {
+        return Promise.reject(error);
+      }
+    }
+
     // Handle 401 Unauthorized - clear auth state globally
     if (error.response?.status === 401) {
       // Don't trigger auth expired for login attempts or auth check

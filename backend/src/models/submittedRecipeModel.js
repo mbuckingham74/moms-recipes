@@ -387,6 +387,31 @@ class SubmittedRecipeModel {
     const result = await stmt.get();
     return result.count;
   }
+
+  /**
+   * Get submission counts by status for a specific user
+   * @param {number} userId
+   * @returns {Promise<Object>} - { total, pending, approved, rejected }
+   */
+  static async getCountsByUserId(userId) {
+    const stmt = db.prepare(`
+      SELECT
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+        SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
+      FROM user_submitted_recipes
+      WHERE user_id = ?
+    `);
+
+    const result = await stmt.get(userId);
+    return {
+      total: result.total || 0,
+      pending: result.pending || 0,
+      approved: result.approved || 0,
+      rejected: result.rejected || 0
+    };
+  }
 }
 
 /**

@@ -22,33 +22,24 @@ function UserDashboard() {
       setLoading(true);
       setError('');
 
-      // Load saved recipes
-      const savedResponse = await api.get('/users/saved-recipes', {
-        params: { limit: 5 }
-      });
-      setRecentSaved(savedResponse.data.recipes || []);
-      setStats(prev => ({
-        ...prev,
-        savedCount: savedResponse.data.pagination?.total || 0
-      }));
+      // Load all data in parallel
+      const [savedResponse, submissionsResponse, countsResponse] = await Promise.all([
+        api.get('/users/saved-recipes', { params: { limit: 5 } }),
+        api.get('/users/submissions', { params: { limit: 5 } }),
+        api.get('/users/submissions/counts')
+      ]);
 
-      // Load submissions
-      const submissionsResponse = await api.get('/users/submissions', {
-        params: { limit: 5 }
-      });
+      setRecentSaved(savedResponse.data.recipes || []);
       setRecentSubmissions(submissionsResponse.data.submissions || []);
 
-      // Calculate submission stats
-      const allSubmissions = submissionsResponse.data.submissions || [];
-      const pendingCount = allSubmissions.filter(s => s.status === 'pending').length;
-      const approvedCount = allSubmissions.filter(s => s.status === 'approved').length;
-
-      setStats(prev => ({
-        ...prev,
-        submissionsCount: submissionsResponse.data.pagination?.total || 0,
-        pendingCount,
-        approvedCount
-      }));
+      // Use dedicated counts endpoint for accurate stats
+      const counts = countsResponse.data.counts || {};
+      setStats({
+        savedCount: savedResponse.data.pagination?.total || 0,
+        submissionsCount: counts.total || 0,
+        pendingCount: counts.pending || 0,
+        approvedCount: counts.approved || 0
+      });
     } catch (err) {
       setError('Failed to load dashboard data');
       console.error(err);

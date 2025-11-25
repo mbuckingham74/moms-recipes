@@ -148,6 +148,21 @@ exports.deleteSubmission = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Get submission counts by status for current user
+ * GET /api/users/submissions/counts
+ */
+exports.getMySubmissionCounts = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+
+  const counts = await SubmittedRecipeModel.getCountsByUserId(userId);
+
+  res.json({
+    success: true,
+    counts
+  });
+});
+
 // =====================
 // Admin-only endpoints
 // =====================
