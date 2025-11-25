@@ -199,9 +199,140 @@ const response = await api.post('/admin/some-action');
 
 ---
 
+## 🌐 URL Import & SSRF Protection
+
+### Overview
+
+The URL recipe import feature (`/api/admin/import-url`) allows admins to fetch recipes from external websites. This creates a **Server-Side Request Forgery (SSRF)** attack surface that must be carefully protected.
+
+**Why SSRF is dangerous:**
+- Attackers could probe internal network services
+- Access cloud metadata endpoints (AWS/GCP credentials)
+- Scan internal infrastructure through the server
+- Exfiltrate data from internal services
+
+### Protection Layers Implemented
+
+The `UrlScraper` service (`backend/src/services/urlScraper.js`) implements multiple defense layers:
+
+#### 1. Protocol Restriction
+- Only `http://` and `https://` URLs allowed
+- Blocks `file://`, `ftp://`, `gopher://`, etc.
+
+#### 2. Hostname Blocklist
+```javascript
+// Explicitly blocked hostnames
+- localhost
+- metadata.google.internal (GCP metadata)
+- metadata
+- 169.254.169.254 (AWS/cloud metadata)
+- *.internal (any .internal domain)
+- *.local (any .local domain)
+```
+
+#### 3. IPv4 Private Range Blocking
+All RFC1918 and special-use IPv4 ranges are blocked:
+| Range | Description |
+|-------|-------------|
+| `127.0.0.0/8` | Loopback |
+| `10.0.0.0/8` | Private Class A |
+| `172.16.0.0/12` | Private Class B |
+| `192.168.0.0/16` | Private Class C |
+| `169.254.0.0/16` | Link-local |
+| `0.0.0.0/8` | Current network |
+| `100.64.0.0/10` | Carrier-grade NAT |
+| `224.0.0.0/4` | Multicast |
+| `240.0.0.0/4` | Reserved |
+
+#### 4. IPv6 Private Range Blocking
+| Range | Description |
+|-------|-------------|
+| `::1` | Loopback |
+| `fe80::/10` | Link-local |
+| `fc00::/7` | Unique local (fc/fd) |
+| `ff00::/8` | Multicast |
+| `::` | Unspecified |
+
+#### 5. IPv4-in-IPv6 Detection (Critical!)
+Attackers can embed private IPv4 addresses in IPv6 format to bypass simple checks:
+
+| Format | Example | Attack Vector |
+|--------|---------|---------------|
+| IPv4-mapped | `::ffff:127.0.0.1` | Loopback bypass |
+| IPv4-mapped hex | `::ffff:7f00:1` | Loopback bypass |
+| IPv4-compatible | `::127.0.0.1` | Loopback bypass |
+| 6to4 | `2002:7f00:1::` | Embeds IPv4 in first 32 bits |
+| Teredo | `2001:0000:...` | Complex encoding (blocked entirely) |
+
+**All embedded IPv4 addresses are extracted and validated against the IPv4 blocklist.**
+
+#### 6. DNS Resolution Validation
+- Resolves **both** A (IPv4) and AAAA (IPv6) records
+- Validates ALL resolved IPs before connecting
+- Prevents DNS rebinding attacks
+
+#### 7. Safe Redirect Handling
+- Automatic redirects disabled (`redirect: 'manual'`)
+- Each redirect destination is validated before following
+- Maximum 5 redirects to prevent infinite loops
+- Prevents redirect-based SSRF (e.g., `example.com` → `http://169.254.169.254`)
+
+#### 8. Request Limits
+| Limit | Value | Purpose |
+|-------|-------|---------|
+| Timeout | 15 seconds | Prevent slow-loris attacks |
+| Max size | 5 MB | Prevent memory exhaustion |
+| Content-type | HTML only | Reject binary/non-HTML |
+
+### Adding New URL-Fetching Features
+
+**⚠️ IMPORTANT: If you add any new feature that fetches user-supplied URLs, you MUST:**
+
+1. **Use the `UrlScraper` service** - Never use raw `fetch()` with user URLs
+2. **Or implement equivalent protections** - All 8 layers listed above
+3. **Review with security mindset** - Consider all bypass vectors
+4. **Test SSRF vectors** - Use test cases like:
+   ```
+   http://127.0.0.1/
+   http://localhost/
+   http://[::1]/
+   http://169.254.169.254/latest/meta-data/
+   http://[::ffff:127.0.0.1]/
+   http://[2002:7f00:1::]/
+   http://example.com/ (that redirects to internal IP)
+   ```
+
+### Code Example - Safe URL Fetching
+
+```javascript
+// ✅ CORRECT - Use UrlScraper for user-supplied URLs
+const UrlScraper = require('../services/urlScraper');
+const result = await UrlScraper.scrape(userSuppliedUrl);
+
+// ❌ WRONG - Direct fetch with user URL (SSRF vulnerable!)
+const response = await fetch(userSuppliedUrl);
+```
+
+### Testing SSRF Protection
+
+Run these test cases to verify protection:
+```bash
+# Should all be rejected
+curl -X POST /api/admin/import-url -d '{"url":"http://127.0.0.1/"}'
+curl -X POST /api/admin/import-url -d '{"url":"http://localhost/"}'
+curl -X POST /api/admin/import-url -d '{"url":"http://169.254.169.254/"}'
+curl -X POST /api/admin/import-url -d '{"url":"http://[::1]/"}'
+curl -X POST /api/admin/import-url -d '{"url":"http://[::ffff:127.0.0.1]/"}'
+curl -X POST /api/admin/import-url -d '{"url":"http://10.0.0.1/"}'
+curl -X POST /api/admin/import-url -d '{"url":"http://192.168.1.1/"}'
+```
+
+---
+
 ## 📚 Additional Resources
 
 - [OWASP Secrets Management Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html)
+- [OWASP SSRF Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html)
 - [Twelve-Factor App: Config](https://12factor.net/config)
 - [npm: dotenv](https://www.npmjs.com/package/dotenv)
 
@@ -220,4 +351,4 @@ If unsure whether something should be an environment variable, ask:
 
 ---
 
-*Last updated: November 2024*
+*Last updated: November 2024 (URL Import SSRF protection added)*
