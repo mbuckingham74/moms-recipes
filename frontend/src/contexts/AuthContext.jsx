@@ -12,21 +12,32 @@ export const useAuth = () => {
   return context;
 };
 
+const SESSION_KEY = 'auth_session_active';
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
+    // Only check auth if there's an active session marker
+    // sessionStorage is cleared when browser is closed
+    if (!sessionStorage.getItem(SESSION_KEY)) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await api.get('/auth/me');
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
       } else {
         setUser(null);
+        sessionStorage.removeItem(SESSION_KEY);
       }
     } catch {
       // Not authenticated or token expired
       setUser(null);
+      sessionStorage.removeItem(SESSION_KEY);
     } finally {
       setLoading(false);
     }
@@ -36,6 +47,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     setAuthExpiredHandler(() => {
       setUser(null);
+      sessionStorage.removeItem(SESSION_KEY);
     });
     // Clean up handler on unmount to avoid setState calls after provider is torn down
     return () => setAuthExpiredHandler(null);
@@ -51,6 +63,8 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { username, password });
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
+        // Set session marker - cleared when browser closes
+        sessionStorage.setItem(SESSION_KEY, 'true');
         return { success: true };
       }
       return { success: false, error: 'Login failed' };
@@ -69,6 +83,7 @@ export const AuthProvider = ({ children }) => {
       // Ignore logout errors
     } finally {
       setUser(null);
+      sessionStorage.removeItem(SESSION_KEY);
     }
   };
 
