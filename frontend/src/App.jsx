@@ -7,6 +7,7 @@ import RecipeDetail from './pages/RecipeDetail';
 import RecipeForm from './pages/RecipeForm';
 import Login from './pages/Login';
 import Dashboard from './pages/admin/Dashboard';
+import AdminRecipes from './pages/admin/AdminRecipes';
 import PdfUpload from './pages/admin/PdfUpload';
 import UrlImport from './pages/admin/UrlImport';
 import PendingRecipes from './pages/admin/PendingRecipes';
@@ -31,6 +32,14 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/recipes"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminRecipes />
                 </ProtectedRoute>
               }
             />

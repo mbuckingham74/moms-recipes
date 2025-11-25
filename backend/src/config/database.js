@@ -65,11 +65,17 @@ const initDatabase = async () => {
         estimated_calories INT DEFAULT NULL,
         calories_confidence ENUM('low', 'medium', 'high') DEFAULT NULL,
         image_path VARCHAR(255),
+        times_cooked INT NOT NULL DEFAULT 0,
         created_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
         updated_at INT NOT NULL DEFAULT (UNIX_TIMESTAMP()),
         INDEX idx_recipes_title (title),
         INDEX idx_recipes_date_added (date_added)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Add times_cooked column if it doesn't exist (for existing databases)
+    await connection.query(`
+      ALTER TABLE recipes ADD COLUMN IF NOT EXISTS times_cooked INT NOT NULL DEFAULT 0
     `);
 
     // Ingredients table

@@ -71,10 +71,10 @@ function Dashboard() {
       <div className="metrics-panel">
         <h2 className="panel-title">Dashboard Metrics</h2>
         <div className="metrics-grid">
-          <div className="metric-item">
+          <Link to="/admin/recipes" className="metric-item clickable">
             <div className="metric-value">{stats.totalRecipes}</div>
             <div className="metric-label">Total Recipes</div>
-          </div>
+          </Link>
 
           <div className="metric-item highlight">
             <div className="metric-value">{stats.pendingRecipes}</div>

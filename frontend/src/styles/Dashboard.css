@@ -53,6 +53,19 @@
   border-radius: 8px;
   background: #f8f9fa;
   border: 1px solid #e9ecef;
+  text-decoration: none;
+  color: inherit;
+}
+
+.metric-item.clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.metric-item.clickable:hover {
+  background: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .metric-item.highlight {

@@ -308,6 +308,46 @@ class RecipeController {
     res.json(stats);
   });
 
+  // Get admin recipe list for table view
+  static getAdminRecipeList = asyncHandler(async (req, res) => {
+    let limit = parseInt(req.query.limit) || 50;
+    let offset = parseInt(req.query.offset) || 0;
+    const sortBy = req.query.sortBy || 'date_added';
+    const sortOrder = req.query.sortOrder || 'DESC';
+
+    // Validate pagination parameters
+    if (isNaN(limit) || limit < 1) limit = 50;
+    if (isNaN(offset) || offset < 0) offset = 0;
+
+    const recipes = await RecipeModel.getAdminList(limit, offset, sortBy, sortOrder);
+    const total = await RecipeModel.getCount();
+
+    res.json({
+      recipes,
+      pagination: {
+        limit: Math.min(limit, 100),
+        offset,
+        total
+      }
+    });
+  });
+
+  // Increment times cooked for a recipe
+  static incrementTimesCooked = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const existingRecipe = await RecipeModel.getById(id);
+    if (!existingRecipe) {
+      throw new ApiError(404, 'Recipe not found');
+    }
+
+    const recipe = await RecipeModel.incrementTimesCooked(id);
+    res.json({
+      message: 'Times cooked updated successfully',
+      timesCooked: recipe.timesCooked
+    });
+  });
+
   // Estimate calories for a recipe using Claude AI
   static estimateCalories = asyncHandler(async (req, res) => {
     const { id } = req.params;
