@@ -3,6 +3,7 @@ const FileModel = require('../models/fileModel');
 const PendingRecipeModel = require('../models/pendingRecipeModel');
 const PDFParser = require('../services/pdfParser');
 const ClaudeService = require('../services/claudeService');
+const UrlScraper = require('../services/urlScraper');
 const { ApiError, asyncHandler } = require('../middleware/errorHandler');
 
 /**
@@ -179,6 +180,88 @@ exports.deletePendingRecipe = asyncHandler(async (req, res) => {
     success: true,
     message: 'Pending recipe deleted'
   });
+});
+
+/**
+ * Import recipe from URL
+ * POST /api/admin/import-url
+ */
+exports.importFromUrl = asyncHandler(async (req, res) => {
+  const { url } = req.body;
+  const userId = req.user.id;
+
+  if (!url || !url.trim()) {
+    throw new ApiError(400, 'URL is required');
+  }
+
+  try {
+    // 1. Scrape the URL
+    const scraped = await UrlScraper.scrape(url.trim());
+
+    let parsedRecipe;
+    let rawText;
+
+    if (scraped.type === 'structured') {
+      // Structured data (JSON-LD) was found - use it directly
+      parsedRecipe = scraped.data;
+      rawText = JSON.stringify(scraped.data, null, 2);
+    } else {
+      // Unstructured - need Claude to parse it
+      rawText = `URL: ${scraped.source}\nTitle: ${scraped.data.title}\n\n${scraped.data.content}`;
+      parsedRecipe = await ClaudeService.parseRecipeFromWebPage(scraped.data, scraped.source);
+    }
+
+    // Ensure source URL is preserved
+    if (!parsedRecipe.source) {
+      parsedRecipe.source = scraped.hostname;
+    }
+
+    // 2. Create a file record for tracking (using URL as reference)
+    const fileId = await FileModel.create({
+      filename: `url-import-${Date.now()}.txt`,
+      originalName: url,
+      filePath: url, // Store URL as file path for reference
+      fileSize: rawText.length,
+      mimeType: 'text/x-url',
+      uploadedBy: userId
+    });
+
+    // 3. Save as pending recipe
+    const pendingRecipeId = await PendingRecipeModel.create({
+      fileId,
+      title: parsedRecipe.title,
+      source: parsedRecipe.source,
+      category: parsedRecipe.category,
+      description: parsedRecipe.description,
+      instructions: parsedRecipe.instructions,
+      rawText,
+      parsedData: parsedRecipe,
+      ingredients: parsedRecipe.ingredients || [],
+      tags: parsedRecipe.tags || []
+    });
+
+    // 4. Mark file as processed
+    await FileModel.markAsProcessed(fileId);
+
+    res.json({
+      success: true,
+      message: 'Recipe imported successfully from URL',
+      data: {
+        fileId,
+        pendingRecipeId,
+        sourceUrl: url,
+        extractionType: scraped.type,
+        recipe: await PendingRecipeModel.findById(pendingRecipeId)
+      }
+    });
+  } catch (error) {
+    // Re-throw API errors as-is
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    // Wrap other errors
+    throw new ApiError(400, error.message);
+  }
 });
 
 /**

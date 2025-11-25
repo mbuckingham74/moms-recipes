@@ -121,6 +121,14 @@ function Dashboard() {
             </div>
           </Link>
 
+          <Link to="/admin/import-url" className="action-card">
+            <div className="action-icon">🔗</div>
+            <div className="action-content">
+              <h3>Import from URL</h3>
+              <p>Import a recipe from any website</p>
+            </div>
+          </Link>
+
           <Link to="/add" className="action-card">
             <div className="action-icon">✏️</div>
             <div className="action-content">

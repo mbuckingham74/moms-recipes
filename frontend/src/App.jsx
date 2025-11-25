@@ -8,6 +8,7 @@ import RecipeForm from './pages/RecipeForm';
 import Login from './pages/Login';
 import Dashboard from './pages/admin/Dashboard';
 import PdfUpload from './pages/admin/PdfUpload';
+import UrlImport from './pages/admin/UrlImport';
 import PendingRecipes from './pages/admin/PendingRecipes';
 import PendingRecipeReview from './pages/admin/PendingRecipeReview';
 import './App.css';
@@ -38,6 +39,14 @@ function App() {
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <PdfUpload />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/import-url"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <UrlImport />
                 </ProtectedRoute>
               }
             />

@@ -12,6 +12,9 @@ router.use(requireAdmin);
 // Upload and parse PDF (state-changing, needs CSRF)
 router.post('/upload-pdf', csrfProtection, uploadPDF.single('pdf'), handleMulterError, pdfController.uploadAndParse);
 
+// Import recipe from URL (state-changing, needs CSRF)
+router.post('/import-url', csrfProtection, pdfController.importFromUrl);
+
 // Pending recipes management
 router.get('/pending-recipes', pdfController.getPendingRecipes);
 router.get('/pending-recipes/:id', pdfController.getPendingRecipe);
