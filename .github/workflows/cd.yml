@@ -44,4 +44,4 @@ jobs:
         run: |
           sleep 10
           curl -f https://moms-recipes.tachyonfuture.com || echo "⚠️ Frontend check failed"
-          curl -f https://api.moms-recipes.tachyonfuture.com/api/health || echo "⚠️ Backend check failed"
+          curl -f https://api.moms-recipes.tachyonfuture.com/health || echo "⚠️ Backend check failed"
