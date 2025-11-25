@@ -10,7 +10,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Jest](https://img.shields.io/badge/Jest-80%25%20coverage-C21325?logo=jest&logoColor=white)
 
-A full-stack recipe organization web application for managing and searching through family recipes.
+AI-powered full-stack recipe management system with React 19, Node.js/Express, MySQL 8, Claude AI for PDF parsing & URL import, Docker deployment, and 80% test coverage.
 
 **🌐 Live Demo:** [https://moms-recipes.tachyonfuture.com](https://moms-recipes.tachyonfuture.com)
 
