@@ -13,6 +13,7 @@ import PdfUpload from './pages/admin/PdfUpload';
 import UrlImport from './pages/admin/UrlImport';
 import PendingRecipes from './pages/admin/PendingRecipes';
 import PendingRecipeReview from './pages/admin/PendingRecipeReview';
+import AISettings from './pages/admin/AISettings';
 import './App.css';
 
 function App() {
@@ -104,6 +105,16 @@ function App() {
                 <ProtectedRoute requireAdmin={true}>
                   <AdminLayout>
                     <RecipeForm />
+                  </AdminLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings/ai"
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminLayout>
+                    <AISettings />
                   </AdminLayout>
                 </ProtectedRoute>
               }
