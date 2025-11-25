@@ -21,6 +21,9 @@ The real power of Mom's Recipes lies in its AI capabilities, which transform how
 ### PDF Recipe Parsing
 Upload scanned or text-based PDF recipes and let AI extract structured data automatically. The system identifies titles, ingredients (with quantities and units), instructions, and suggests appropriate tags—turning your grandmother's handwritten recipe cards into searchable, organized digital recipes.
 
+### Recipe Image Management
+Upload and manage multiple images per recipe. Set a hero image for recipe cards and galleries, with a lightbox viewer for the full collection. Supports JPEG, PNG, GIF, and WebP formats.
+
 ### Recipe Image Recognition
 *Coming soon* - Take a photo of a recipe from a cookbook or magazine, and AI will extract all the recipe details, just like PDF parsing but for images.
 
@@ -91,6 +94,10 @@ AI analyzes your recipe's ingredients and portions to estimate calories per serv
   - AI-powered parsing for sites without structured data
   - Comprehensive SSRF protection (blocks private IPs, cloud metadata endpoints)
   - Review and edit before publishing
+- **Recipe Image Upload**: Upload and manage recipe images
+  - Multiple images per recipe with hero image selection
+  - Image gallery with lightbox viewer
+  - Supports JPEG, PNG, GIF, WebP (max 5MB each)
 - **Manual Recipe Entry**: Traditional form-based recipe creation
 - **Role-based Access**: Admin vs. viewer permissions
 
@@ -129,6 +136,7 @@ moms-recipes/
 │   │   │   └── jwt.js           # JWT configuration
 │   │   ├── models/
 │   │   │   ├── recipeModel.js   # Recipe data operations
+│   │   │   ├── recipeImageModel.js  # Recipe image management
 │   │   │   ├── userModel.js     # User accounts and preferences
 │   │   │   ├── savedRecipeModel.js    # User saved recipes
 │   │   │   └── submittedRecipeModel.js # User recipe submissions
@@ -200,6 +208,18 @@ moms-recipes/
 
 **recipe_tags** (junction table)
 - `recipe_id`, `tag_id` (composite PRIMARY KEY)
+
+**recipe_images**
+- `id` (PRIMARY KEY)
+- `recipe_id` (FOREIGN KEY, CASCADE DELETE)
+- `filename` (TEXT, UUID-generated)
+- `original_name` (TEXT)
+- `file_size` (INTEGER, bytes)
+- `mime_type` (TEXT)
+- `is_hero` (BOOLEAN, default FALSE)
+- `position` (INTEGER, for gallery ordering)
+- `uploaded_by` (FOREIGN KEY to users)
+- `uploaded_at` (INTEGER, Unix timestamp)
 
 ### User Tables
 
@@ -577,6 +597,56 @@ Authorization: Required (admin)
 
 Increments the `times_cooked` counter for tracking cooking history.
 
+### Recipe Images
+
+#### Upload Images
+```http
+POST /api/recipes/:id/images
+Content-Type: multipart/form-data
+Authorization: Required (admin)
+
+images: <file(s)>
+isHero: true (optional, sets first image as hero)
+```
+
+Uploads one or more images to a recipe. Supports JPEG, PNG, GIF, WebP (max 5MB each).
+
+#### Get Recipe Images
+```http
+GET /api/recipes/:id/images
+```
+
+Returns all images for a recipe with sanitized URLs.
+
+#### Set Hero Image
+```http
+PUT /api/recipes/:recipeId/images/:imageId/hero
+Authorization: Required (admin)
+```
+
+Sets the specified image as the hero (main display) image.
+
+#### Delete Image
+```http
+DELETE /api/recipes/:recipeId/images/:imageId
+Authorization: Required (admin)
+```
+
+Deletes an image from the recipe and removes the file from disk.
+
+#### Reorder Images
+```http
+PUT /api/recipes/:id/images/reorder
+Content-Type: application/json
+Authorization: Required (admin)
+
+{
+  "imageOrder": [3, 1, 2]
+}
+```
+
+Updates image positions. All image IDs must belong to the recipe.
+
 ### Admin - Recipe Management
 
 #### Get Admin Recipe List
@@ -695,11 +765,10 @@ curl http://localhost:3001/api/recipes/search?title=bread
 
 ## Next Steps
 
-1. **Image Upload**: Add endpoint for uploading recipe images
+1. ~~**Image Upload**: Add endpoint for uploading recipe images~~ ✅ Complete
 2. **Advanced Search**: Combine multiple search criteria
 3. **Recipe Import**: Bulk import functionality for the 370 recipes
-4. **Frontend**: Build React interface
-5. **OCR Integration**: Add text extraction from scanned recipe images
+4. **OCR Integration**: Add text extraction from scanned recipe images
 
 ## Development Notes
 
