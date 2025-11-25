@@ -51,12 +51,20 @@ AI analyzes your recipe's ingredients and portions to estimate calories per serv
 - Tag-based categorization and filtering
 - Responsive design with warm kitchen color palette
 
+### User Features 👤
+- **User Registration**: Create an account with email/password
+- **Save Recipes**: Build a personal collection of favorite recipes
+- **Submit Recipes**: Contribute recipes for admin review before publishing
+- **Track Submissions**: Monitor submission status (pending, approved, rejected)
+- **User Dashboard**: View saved recipes, submission stats, and quick actions
+
 ### Admin Features 🔐
 - **Authentication**: Secure JWT-based login with httpOnly cookies (30-day sessions)
 - **Personalized Greeting**: Header displays "Hello, {username}!" when logged in
 - **Persistent Admin Sidebar**: Quick Actions navigation visible on all admin pages
-  - Dashboard, Upload PDF, Import from URL, Add Recipe, Review Pending, All Recipes, AI Settings
+  - Dashboard, Upload PDF, Import from URL, Add Recipe, Review Pending, User Submissions, All Recipes, AI Settings
   - Responsive design (collapses on mobile)
+- **User Submissions Review**: Review, approve, or reject user-submitted recipes
 - **Admin Dashboard**: View stats and metrics (clickable cards for navigation)
   - AI status panel showing current provider and model
 - **Admin Recipes Table**: Sortable table view of all recipes with:
@@ -120,15 +128,23 @@ moms-recipes/
 │   │   │   ├── database.js      # MySQL connection and schema
 │   │   │   └── jwt.js           # JWT configuration
 │   │   ├── models/
-│   │   │   └── recipeModel.js   # Recipe data operations
+│   │   │   ├── recipeModel.js   # Recipe data operations
+│   │   │   ├── userModel.js     # User accounts and preferences
+│   │   │   ├── savedRecipeModel.js    # User saved recipes
+│   │   │   └── submittedRecipeModel.js # User recipe submissions
 │   │   ├── controllers/
-│   │   │   └── recipeController.js  # Request handlers
+│   │   │   ├── recipeController.js    # Recipe request handlers
+│   │   │   ├── userController.js      # User registration/profile
+│   │   │   ├── savedRecipeController.js
+│   │   │   └── submittedRecipeController.js
 │   │   ├── middleware/
 │   │   │   ├── errorHandler.js  # Centralized error handling
 │   │   │   ├── auth.js          # JWT authentication
 │   │   │   └── csrf.js          # CSRF protection
 │   │   ├── routes/
-│   │   │   └── recipeRoutes.js  # API routes
+│   │   │   ├── recipeRoutes.js  # Recipe API routes
+│   │   │   ├── userRoutes.js    # User feature routes
+│   │   │   └── submissionRoutes.js # Admin submission review routes
 │   │   └── server.js            # Express server setup
 │   ├── tests/                    # Backend integration tests
 │   └── uploads/                  # Recipe image files
@@ -136,12 +152,18 @@ moms-recipes/
 │   ├── src/
 │   │   ├── components/          # Reusable UI components
 │   │   │   ├── AdminLayout.jsx  # Admin sidebar layout wrapper
-│   │   │   ├── Header.jsx       # Main site header
+│   │   │   ├── Header.jsx       # Main site header (with user menu)
 │   │   │   └── ProtectedRoute.jsx
 │   │   ├── pages/               # Page components
-│   │   │   └── admin/           # Admin panel pages
+│   │   │   ├── admin/           # Admin panel pages
+│   │   │   │   └── UserSubmissions.jsx # Review user submissions
+│   │   │   └── user/            # User feature pages
+│   │   │       ├── UserDashboard.jsx
+│   │   │       ├── SavedRecipes.jsx
+│   │   │       ├── SubmitRecipe.jsx
+│   │   │       └── MySubmissions.jsx
 │   │   ├── styles/              # Component-specific CSS
-│   │   ├── services/            # API integration
+│   │   ├── services/            # API integration (auto CSRF handling)
 │   │   └── contexts/            # React context providers
 │   ├── public/
 │   └── index.html
@@ -179,15 +201,40 @@ moms-recipes/
 **recipe_tags** (junction table)
 - `recipe_id`, `tag_id` (composite PRIMARY KEY)
 
-### Admin Tables
+### User Tables
 
 **users**
 - `id` (PRIMARY KEY)
 - `username` (TEXT, unique)
-- `email` (TEXT)
+- `email` (TEXT, unique for registered users)
 - `password_hash` (TEXT, bcrypt)
 - `role` (ENUM: 'admin', 'viewer')
 - `created_at`, `updated_at`
+
+**user_preferences**
+- `user_id` (PRIMARY KEY, FOREIGN KEY to users)
+- `theme` (ENUM: 'light', 'dark')
+- `created_at`, `updated_at`
+
+**user_saved_recipes**
+- `user_id` (FOREIGN KEY to users)
+- `recipe_id` (FOREIGN KEY to recipes)
+- `saved_at` (INTEGER, Unix timestamp)
+- Composite PRIMARY KEY (user_id, recipe_id)
+
+**user_submitted_recipes**
+- `id` (PRIMARY KEY)
+- `user_id` (FOREIGN KEY to users)
+- `title`, `source`, `instructions`, `servings`
+- `status` (ENUM: 'pending', 'approved', 'rejected')
+- `admin_notes` (TEXT) - Feedback from reviewer
+- `reviewed_by` (FOREIGN KEY to users)
+- `reviewed_at`, `created_at`, `updated_at`
+
+**user_submitted_ingredients** & **user_submitted_tags**
+- Temporary storage for user-submitted recipes awaiting approval
+
+### Admin Tables
 
 **uploaded_files**
 - `id` (PRIMARY KEY)
@@ -309,6 +356,76 @@ GET /api/auth/me
 ```
 
 Returns current authenticated user info.
+
+#### Register User
+```http
+POST /api/users/register
+Content-Type: application/json
+
+{
+  "username": "newuser",
+  "email": "user@example.com",
+  "password": "securepassword"
+}
+```
+
+Creates a new user account (role: viewer).
+
+### User Features
+
+#### Get Saved Recipes
+```http
+GET /api/users/saved-recipes?limit=20&offset=0
+Authorization: Required
+```
+
+Returns user's saved recipes with pagination.
+
+#### Save Recipe
+```http
+POST /api/users/saved-recipes/:recipeId
+Authorization: Required
+```
+
+#### Remove Saved Recipe
+```http
+DELETE /api/users/saved-recipes/:recipeId
+Authorization: Required
+```
+
+#### Submit Recipe
+```http
+POST /api/users/submissions
+Content-Type: application/json
+Authorization: Required
+
+{
+  "title": "My Recipe",
+  "source": "Family tradition",
+  "instructions": "Step-by-step...",
+  "servings": 4,
+  "ingredients": [{"name": "flour", "quantity": "2", "unit": "cups"}],
+  "tags": ["dessert"]
+}
+```
+
+Submits a recipe for admin review.
+
+#### Get My Submissions
+```http
+GET /api/users/submissions?limit=20&offset=0&status=pending
+Authorization: Required
+```
+
+Returns user's submitted recipes with optional status filter.
+
+#### Delete Submission
+```http
+DELETE /api/users/submissions/:id
+Authorization: Required
+```
+
+Delete a pending submission (only owner, only if pending).
 
 ### Admin - Recipe Import
 
@@ -471,6 +588,50 @@ Authorization: Required (admin)
 Returns a table-optimized list with columns: id, title, category (first tag), mainIngredient (first ingredient), estimatedCalories, dateAdded, timesCooked.
 
 **Sort options:** `title`, `date_added`, `estimated_calories`, `times_cooked`
+
+### Admin - User Submissions
+
+#### Get All User Submissions
+```http
+GET /api/admin/submissions?limit=20&offset=0&status=pending
+Authorization: Required (admin)
+```
+
+Returns all user-submitted recipes with optional status filter.
+
+#### Review Submission
+```http
+GET /api/admin/submissions/:id
+Authorization: Required (admin)
+```
+
+Returns full submission details for review.
+
+#### Approve Submission
+```http
+POST /api/admin/submissions/:id/approve
+Content-Type: application/json
+Authorization: Required (admin)
+
+{
+  "notes": "Optional approval notes"
+}
+```
+
+Creates a published recipe from the submission.
+
+#### Reject Submission
+```http
+POST /api/admin/submissions/:id/reject
+Content-Type: application/json
+Authorization: Required (admin)
+
+{
+  "notes": "Reason for rejection (required)"
+}
+```
+
+Rejects submission with feedback for the user.
 
 ### Tags
 

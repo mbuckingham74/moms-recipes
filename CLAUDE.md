@@ -19,6 +19,21 @@ The app supports multiple AI providers: **Anthropic Claude**, **OpenAI GPT-4**, 
 - Do not add SQLite fallbacks or conditional database code
 - All environments (dev, test, production) use MySQL
 
+## User Features
+
+The app supports regular user accounts (role: 'viewer') with these features:
+
+- **Registration**: `/api/users/register` - creates account with email validation
+- **Saved Recipes**: Users can save/unsave recipes to their collection
+- **Recipe Submissions**: Users can submit recipes for admin review
+- **User Dashboard**: Shows stats and recent activity at `/dashboard`
+
+Key implementation details:
+- User preferences use upsert (INSERT ON DUPLICATE KEY UPDATE) to handle legacy users
+- CSRF tokens are automatically fetched and included via the API service interceptor
+- Submission counts use a dedicated endpoint for accuracy (not filtered from paginated results)
+- Admin reviews submissions at `/admin/user-submissions`
+
 ## Environment Variables (Production Required)
 
 - `DB_PASSWORD` - MySQL password
