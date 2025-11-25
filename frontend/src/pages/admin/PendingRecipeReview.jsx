@@ -120,13 +120,8 @@ function PendingRecipeReview() {
   return (
     <div className="review-container">
       <div className="review-header">
-        <div>
-          <h1>Review Recipe</h1>
-          <p className="subtitle">Review and edit the recipe before approving</p>
-        </div>
-        <Link to="/admin/pending" className="btn btn-secondary">
-          Back to List
-        </Link>
+        <h1>Review Recipe</h1>
+        <p className="subtitle">Review and edit the recipe before approving</p>
       </div>
 
       {error && (

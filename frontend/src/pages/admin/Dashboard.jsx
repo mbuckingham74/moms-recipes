@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import '../../styles/Dashboard.css';
 
@@ -16,9 +15,6 @@ function Dashboard() {
   const [pendingRecipes, setPendingRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
 
   const loadDashboardData = useCallback(async () => {
     try {
@@ -45,11 +41,6 @@ function Dashboard() {
     loadDashboardData();
   }, [loadDashboardData]);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
-
   if (loading) {
     return <div className="loading">Loading dashboard...</div>;
   }
@@ -57,13 +48,7 @@ function Dashboard() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <div>
-          <h1>Admin Dashboard</h1>
-          <p className="welcome-text">Welcome, {user?.username}!</p>
-        </div>
-        <button onClick={handleLogout} className="btn btn-secondary">
-          Logout
-        </button>
+        <h1>Dashboard</h1>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -76,10 +61,10 @@ function Dashboard() {
             <div className="metric-label">Total Recipes</div>
           </Link>
 
-          <div className="metric-item highlight">
+          <Link to="/admin/pending" className="metric-item highlight clickable">
             <div className="metric-value">{stats.pendingRecipes}</div>
             <div className="metric-label">Pending Reviews</div>
-          </div>
+          </Link>
 
           <div className="metric-item">
             <div className="metric-value">{stats.categoriesCount}</div>
@@ -107,43 +92,6 @@ function Dashboard() {
             </div>
             <div className="metric-label">With Calorie Data</div>
           </div>
-        </div>
-      </div>
-
-      <div className="actions-section">
-        <h2>Quick Actions</h2>
-        <div className="action-buttons">
-          <Link to="/admin/upload" className="action-card">
-            <div className="action-icon">📄</div>
-            <div className="action-content">
-              <h3>Upload PDF</h3>
-              <p>Upload and parse recipe PDFs</p>
-            </div>
-          </Link>
-
-          <Link to="/admin/import-url" className="action-card">
-            <div className="action-icon">🔗</div>
-            <div className="action-content">
-              <h3>Import from URL</h3>
-              <p>Import a recipe from any website</p>
-            </div>
-          </Link>
-
-          <Link to="/add" className="action-card">
-            <div className="action-icon">✏️</div>
-            <div className="action-content">
-              <h3>Add Recipe</h3>
-              <p>Manually create a new recipe</p>
-            </div>
-          </Link>
-
-          <Link to="/admin/pending" className="action-card">
-            <div className="action-icon">👁️</div>
-            <div className="action-content">
-              <h3>Review Pending</h3>
-              <p>Review and approve parsed recipes</p>
-            </div>
-          </Link>
         </div>
       </div>
 

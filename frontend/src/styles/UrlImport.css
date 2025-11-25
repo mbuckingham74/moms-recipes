@@ -6,6 +6,8 @@
 
 .url-import-header {
   margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
 }
 
 .url-import-header h1 {
