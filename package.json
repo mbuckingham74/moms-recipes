@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node backend/src/server.js",
     "dev": "nodemon backend/src/server.js",
-    "test": "jest --runInBand --verbose --coverage",
+    "test": "jest --runInBand --verbose --coverage --forceExit --testTimeout=30000",
     "test:watch": "jest --runInBand --watch"
   },
   "jest": {
