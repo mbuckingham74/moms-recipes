@@ -36,8 +36,8 @@ jobs:
             fi
 
             # Run deployment script
-            chmod +x deploy.sh
-            ./deploy.sh
+            chmod +x scripts/deploy.sh
+            ./scripts/deploy.sh
           ENDSSH
 
       - name: Check deployment status
