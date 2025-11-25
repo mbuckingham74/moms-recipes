@@ -89,8 +89,8 @@ class RecipeModel {
       ORDER BY position
     `).all(id);
 
-    // Get images
-    const images = await RecipeImageModel.getByRecipeId(id);
+    // Get images (sanitized - no server paths exposed)
+    const images = await RecipeImageModel.getByRecipeIdPublic(id);
 
     // Convert to camelCase and parse tags
     const camelRecipe = toCamelCase(recipe);
@@ -100,7 +100,7 @@ class RecipeModel {
 
     // Set heroImage for convenience (first hero image or first image)
     const heroImage = images.find(img => img.isHero) || images[0] || null;
-    camelRecipe.heroImage = heroImage ? `/uploads/images/${heroImage.filename}` : null;
+    camelRecipe.heroImage = heroImage ? heroImage.url : null;
 
     return camelRecipe;
   }
@@ -420,6 +420,10 @@ class RecipeModel {
 
   // Delete recipe
   static async delete(id) {
+    // Delete associated image files from disk before removing DB records
+    // (FK cascade will delete recipe_images rows, but not the actual files)
+    await RecipeImageModel.deleteByRecipeId(id);
+
     const stmt = db.prepare('DELETE FROM recipes WHERE id = ?');
     const result = await stmt.run(id);
 

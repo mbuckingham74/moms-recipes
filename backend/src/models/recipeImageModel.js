@@ -14,6 +14,16 @@ const toCamelCase = (obj) => {
   }, {});
 };
 
+// Sanitize image for public API response (remove server-side fields)
+const sanitizeForPublic = (image) => {
+  if (!image) return null;
+  const { filePath, ...publicFields } = image;
+  return {
+    ...publicFields,
+    url: `/uploads/images/${image.filename}`
+  };
+};
+
 class RecipeImageModel {
   /**
    * Add an image to a recipe
@@ -198,6 +208,44 @@ class RecipeImageModel {
     `).get(recipeId);
 
     return result.count;
+  }
+
+  /**
+   * Get image by ID (sanitized for public API)
+   * @param {number} id - Image ID
+   * @returns {Object|null} Sanitized image record or null
+   */
+  static async getByIdPublic(id) {
+    const image = await this.getById(id);
+    return sanitizeForPublic(image);
+  }
+
+  /**
+   * Get all images for a recipe (sanitized for public API)
+   * @param {number} recipeId - Recipe ID
+   * @returns {Array} Array of sanitized image records
+   */
+  static async getByRecipeIdPublic(recipeId) {
+    const images = await this.getByRecipeId(recipeId);
+    return images.map(sanitizeForPublic);
+  }
+
+  /**
+   * Validate that all image IDs belong to a specific recipe
+   * @param {number} recipeId - Recipe ID
+   * @param {Array<number>} imageIds - Array of image IDs to validate
+   * @returns {boolean} True if all IDs belong to the recipe
+   */
+  static async validateImageOwnership(recipeId, imageIds) {
+    if (!imageIds || imageIds.length === 0) return true;
+
+    const placeholders = imageIds.map(() => '?').join(',');
+    const result = await db.prepare(`
+      SELECT COUNT(*) as count FROM recipe_images
+      WHERE recipe_id = ? AND id IN (${placeholders})
+    `).get(recipeId, ...imageIds);
+
+    return result.count === imageIds.length;
   }
 }
 

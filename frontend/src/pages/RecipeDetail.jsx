@@ -2,10 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api, { recipeAPI } from '../services/api';
 import { getTagClass, formatDate } from '../utils/recipeHelpers';
+import { getImageUrl } from '../utils/urlHelpers';
 import { useAuth } from '../contexts/AuthContext';
 import './RecipeDetail.css';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 function RecipeDetail() {
   const { id } = useParams();
@@ -206,17 +205,11 @@ function RecipeDetail() {
             {/* Hero Image */}
             <div className="recipe-image-large">
               {recipe.heroImage ? (
-                <img src={`${API_BASE_URL}${recipe.heroImage}`} alt={recipe.title} />
+                <img src={getImageUrl(recipe.heroImage)} alt={recipe.title} />
               ) : recipe.imagePath ? (
-                <img
-                  src={recipe.imagePath.startsWith('http') ? recipe.imagePath : `${API_BASE_URL}${recipe.imagePath}`}
-                  alt={recipe.title}
-                />
+                <img src={getImageUrl(recipe.imagePath)} alt={recipe.title} />
               ) : recipe.images && recipe.images.length > 0 ? (
-                <img
-                  src={`${API_BASE_URL}/uploads/images/${recipe.images[0].filename}`}
-                  alt={recipe.title}
-                />
+                <img src={getImageUrl(recipe.images[0].url)} alt={recipe.title} />
               ) : null}
             </div>
 
@@ -230,10 +223,7 @@ function RecipeDetail() {
                     onClick={() => setSelectedImage(image)}
                     type="button"
                   >
-                    <img
-                      src={`${API_BASE_URL}/uploads/images/${image.filename}`}
-                      alt={image.originalName}
-                    />
+                    <img src={getImageUrl(image.url)} alt={image.originalName} />
                   </button>
                 ))}
               </div>
@@ -252,10 +242,7 @@ function RecipeDetail() {
               >
                 ✕
               </button>
-              <img
-                src={`${API_BASE_URL}/uploads/images/${selectedImage.filename}`}
-                alt={selectedImage.originalName}
-              />
+              <img src={getImageUrl(selectedImage.url)} alt={selectedImage.originalName} />
             </div>
           </div>
         )}

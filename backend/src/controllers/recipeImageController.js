@@ -1,7 +1,6 @@
 const RecipeImageModel = require('../models/recipeImageModel');
 const RecipeModel = require('../models/recipeModel');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
-const path = require('path');
 
 class RecipeImageController {
   /**
@@ -44,8 +43,11 @@ class RecipeImageController {
         uploadedBy: req.user?.id || null
       };
 
-      const image = await RecipeImageModel.create(imageData);
-      uploadedImages.push(image);
+      await RecipeImageModel.create(imageData);
+      // Get sanitized version for response
+      const images = await RecipeImageModel.getByRecipeIdPublic(id);
+      const latestImage = images[images.length - 1];
+      uploadedImages.push(latestImage);
     }
 
     res.status(201).json({
@@ -67,7 +69,8 @@ class RecipeImageController {
       throw new ApiError(404, 'Recipe not found');
     }
 
-    const images = await RecipeImageModel.getByRecipeId(id);
+    // Use sanitized public method
+    const images = await RecipeImageModel.getByRecipeIdPublic(id);
 
     res.json({ images });
   });
@@ -91,7 +94,9 @@ class RecipeImageController {
       throw new ApiError(404, 'Image not found for this recipe');
     }
 
-    const updatedImage = await RecipeImageModel.setAsHero(imageId, recipeId);
+    await RecipeImageModel.setAsHero(imageId, recipeId);
+    // Return sanitized version
+    const updatedImage = await RecipeImageModel.getByIdPublic(imageId);
 
     res.json({
       message: 'Hero image updated successfully',
@@ -145,14 +150,20 @@ class RecipeImageController {
       throw new ApiError(400, 'imageOrder must be an array of image IDs');
     }
 
+    // Validate all image IDs belong to this recipe
+    const validIds = await RecipeImageModel.validateImageOwnership(id, imageOrder);
+    if (!validIds) {
+      throw new ApiError(400, 'One or more image IDs do not belong to this recipe');
+    }
+
     // Update positions
     for (let position = 0; position < imageOrder.length; position++) {
       const imageId = imageOrder[position];
       await RecipeImageModel.updatePosition(imageId, position);
     }
 
-    // Return updated images
-    const images = await RecipeImageModel.getByRecipeId(id);
+    // Return sanitized images
+    const images = await RecipeImageModel.getByRecipeIdPublic(id);
 
     res.json({
       message: 'Image order updated successfully',

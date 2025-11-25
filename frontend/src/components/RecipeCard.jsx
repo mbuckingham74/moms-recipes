@@ -1,22 +1,17 @@
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { getTagClass, formatDate } from '../utils/recipeHelpers';
+import { getImageUrl } from '../utils/urlHelpers';
 import './RecipeCard.css';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 function RecipeCard({ recipe }) {
   // Determine the image to display: heroImage (uploaded), imagePath (legacy), or placeholder
   const getDisplayImage = () => {
     if (recipe.heroImage) {
-      // Hero image from uploaded images
-      return `${API_BASE_URL}${recipe.heroImage}`;
+      return getImageUrl(recipe.heroImage);
     }
     if (recipe.imagePath) {
-      // Legacy image path (could be external URL or relative path)
-      return recipe.imagePath.startsWith('http')
-        ? recipe.imagePath
-        : `${API_BASE_URL}${recipe.imagePath}`;
+      return getImageUrl(recipe.imagePath);
     }
     return null;
   };

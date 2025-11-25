@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { recipeAPI } from '../services/api';
+import { getImageUrl } from '../utils/urlHelpers';
 import './RecipeForm.css';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 function RecipeForm() {
   const { id } = useParams();
@@ -231,11 +230,6 @@ function RecipeForm() {
     }
   };
 
-  // Get image URL for display
-  const getImageUrl = (image) => {
-    return `${API_BASE_URL}/uploads/images/${image.filename}`;
-  };
-
   if (loadingRecipe) {
     return (
       <div className="container">
@@ -343,7 +337,7 @@ function RecipeForm() {
                         key={image.id}
                         className={`image-item ${image.isHero ? 'is-hero' : ''}`}
                       >
-                        <img src={getImageUrl(image)} alt={image.originalName} />
+                        <img src={getImageUrl(image.url)} alt={image.originalName} />
                         <div className="image-overlay">
                           {image.isHero ? (
                             <span className="hero-badge">Hero</span>
