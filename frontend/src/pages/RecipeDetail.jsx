@@ -43,6 +43,13 @@ function RecipeDetail() {
   }, [loadRecipe]);
 
   const handleDelete = async () => {
+    // Guard against non-admin users
+    if (!isAdmin()) {
+      setError('You must be an admin to delete recipes.');
+      setShowDeleteConfirm(false);
+      return;
+    }
+
     try {
       await recipeAPI.delete(id);
       navigate('/');
@@ -119,18 +126,20 @@ function RecipeDetail() {
               <p className="recipe-date">📅 Added {formatDate(recipe.dateAdded, false)}</p>
             )}
           </div>
-          <div className="recipe-actions">
-            <Link to={`/edit/${recipe.id}`} className="btn btn-secondary">
-              Edit Recipe
-            </Link>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="btn btn-outline"
-              style={{ borderColor: 'var(--terracotta)', color: 'var(--terracotta)' }}
-            >
-              Delete
-            </button>
-          </div>
+          {isAdmin() && (
+            <div className="recipe-actions">
+              <Link to={`/edit/${recipe.id}`} className="btn btn-secondary">
+                Edit Recipe
+              </Link>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="btn btn-outline"
+                style={{ borderColor: 'var(--terracotta)', color: 'var(--terracotta)' }}
+              >
+                Delete
+              </button>
+            </div>
+          )}
         </div>
 
         {recipe.imagePath && (

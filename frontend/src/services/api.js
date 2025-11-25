@@ -3,6 +3,13 @@ import axios from 'axios';
 // Use environment variable for API base URL, fallback to proxy path for dev
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
+// Handler for auth expiration - set by AuthContext
+let authExpiredHandler = null;
+
+export const setAuthExpiredHandler = (handler) => {
+  authExpiredHandler = handler;
+};
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -72,6 +79,14 @@ export const recipeAPI = {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle 401 Unauthorized - clear auth state globally
+    if (error.response?.status === 401) {
+      // Don't trigger auth expired for login attempts or auth check
+      const isAuthEndpoint = error.config?.url?.includes('/auth/');
+      if (!isAuthEndpoint && authExpiredHandler) {
+        authExpiredHandler();
+      }
+    }
     console.error('API Error:', error.response?.data || error.message);
     return Promise.reject(error);
   }

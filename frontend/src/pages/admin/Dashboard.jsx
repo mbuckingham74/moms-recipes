@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -20,11 +20,7 @@ function Dashboard() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -43,7 +39,11 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const handleLogout = async () => {
     await logout();
