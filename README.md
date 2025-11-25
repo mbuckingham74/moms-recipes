@@ -10,22 +10,30 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Jest](https://img.shields.io/badge/Jest-80%25%20coverage-C21325?logo=jest&logoColor=white)
 
-AI-powered full-stack recipe management system with React 19, Node.js/Express, MySQL 8, multi-provider AI support (Claude, GPT-4, Gemini) for PDF parsing & URL import, Docker deployment, and 80% test coverage.
+A full-stack recipe management system powered by AI. Import recipes from PDFs, photos, or URLs with automatic parsing. Get intelligent serving size and calorie estimates. Built with React 19, Node.js/Express, MySQL 8, and multi-provider AI support (Claude, GPT-4, Gemini).
 
 **🌐 Live Demo:** [https://moms-recipes.tachyonfuture.com](https://moms-recipes.tachyonfuture.com)
 
+## AI-Powered Features
+
+The real power of Mom's Recipes lies in its AI capabilities, which transform how you digitize and manage recipes:
+
+### PDF Recipe Parsing
+Upload scanned or text-based PDF recipes and let AI extract structured data automatically. The system identifies titles, ingredients (with quantities and units), instructions, and suggests appropriate tags—turning your grandmother's handwritten recipe cards into searchable, organized digital recipes.
+
+### Recipe Image Recognition
+*Coming soon* - Take a photo of a recipe from a cookbook or magazine, and AI will extract all the recipe details, just like PDF parsing but for images.
+
+### Smart Link Import
+Paste any recipe URL and the system intelligently extracts recipe data. For sites with structured data (AllRecipes, Food Network, etc.), it uses JSON-LD schema. For other sites, AI parses the page content to identify and extract recipe components.
+
+### Serving Size & Calorie Estimation
+AI analyzes your recipe's ingredients and portions to estimate calories per serving. Helpful for meal planning and dietary tracking without manual calorie counting.
+
 **📚 Documentation:**
-- **[Deployment Guide](DEPLOYMENT.md)** - **IMPORTANT:** Environment variable management and safe deployment
-- [API Documentation](#api-endpoints)
+- **[Deployment Guide](DEPLOYMENT.md)** - Environment variables and production deployment
 - [Security Guidelines](SECURITY_GUIDELINES.md) - Security best practices and credential management
-- [Dependency Notes](DEPENDENCIES.md) - Dependency management and migration strategies
-- [Frontend Design Guide](docs/FRONTEND_DESIGN.md) - Complete design system with warm kitchen color palette
-- [Docker Deployment](docs/DOCKER_DEPLOYMENT.md) - Docker setup and container orchestration
-- [Project Summary](docs/PROJECT_SUMMARY.md) - Development history and architecture decisions
-- [Quick Start](docs/QUICK_START.md) - Fast setup and resume guide
-- [CI/CD Setup](docs/CI_CD_SETUP.md) - GitHub Actions pipeline configuration
-- [MySQL Migration](docs/MYSQL_MIGRATION_COMPLETE.md) - SQLite to MySQL migration details
-- [Fixes Summary](docs/FIXES_SUMMARY.md) - Bug fixes and improvements log
+- [All Documentation](docs/README.md) - Complete docs index (design, Docker, CI/CD, and more)
 
 ## Current Status
 

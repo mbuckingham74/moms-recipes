@@ -9,20 +9,26 @@ Comprehensive documentation for the Mom's Recipes application.
 
 ## Deployment
 
-- **[Deployment Guide](DEPLOYMENT.md)** - Production deployment to moms-recipes.tachyonfuture.com
+- **[Deployment Guide](../DEPLOYMENT.md)** - Environment variables and production deployment
 - **[Docker Deployment](DOCKER_DEPLOYMENT.md)** - Docker setup and container orchestration
 - **[CI/CD Setup](CI_CD_SETUP.md)** - GitHub Actions pipeline configuration
+- **[Deployment Notes](DEPLOYMENT_NOTES.md)** - Additional deployment considerations
 
 ## Technical Details
 
 - **[Frontend Design Guide](FRONTEND_DESIGN.md)** - Complete design system with warm kitchen color palette
 - **[MySQL Migration](MYSQL_MIGRATION_COMPLETE.md)** - SQLite to MySQL migration details
 - **[Branching Strategy](BRANCHING_STRATEGY.md)** - Git workflow and branch management
+- **[Dependencies](DEPENDENCIES.md)** - Dependency management and migration strategies
 - **[Fixes Summary](FIXES_SUMMARY.md)** - Historical bug fixes and improvements
 
-## Migration Notes
+## Features
 
-- **[MySQL Migration TODO](MYSQL_MIGRATION_TODO.md)** - Original migration planning (archived)
+- **[Calorie Estimation](CALORIE_FEATURE.md)** - AI-powered calorie estimation feature details
+
+## Archives
+
+- **[MySQL Migration TODO](MYSQL_MIGRATION_TODO.md)** - Original migration planning (completed)
 
 ---
 

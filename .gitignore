@@ -6,7 +6,13 @@ backend/data/
 backend/uploads/
 *.log
 .DS_Store
+
+# Test coverage
+coverage/
 backend/coverage/
+
+# Database files (MySQL is required - no SQLite)
+*.db
 
 # Frontend build output
 frontend/dist/

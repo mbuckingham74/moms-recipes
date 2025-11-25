@@ -1,13 +1,34 @@
 {
   "name": "moms-recipes",
   "version": "1.0.0",
-  "description": "Recipe organization backend for managing ~370 recipes",
+  "description": "AI-powered recipe management system with PDF parsing, URL import, and calorie estimation",
+  "author": "Michael Buckingham",
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mbuckingham74/moms-recipes.git"
+  },
+  "keywords": [
+    "recipes",
+    "ai",
+    "pdf-parsing",
+    "react",
+    "express",
+    "mysql",
+    "claude",
+    "openai",
+    "gemini"
+  ],
   "main": "backend/src/server.js",
   "scripts": {
     "start": "node backend/src/server.js",
     "dev": "nodemon backend/src/server.js",
     "test": "jest --runInBand --verbose --coverage --forceExit --testTimeout=30000",
-    "test:watch": "jest --runInBand --watch"
+    "test:watch": "jest --runInBand --watch",
+    "setup": "npm install && cd frontend && npm install",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
   },
   "jest": {
     "testEnvironment": "node",
@@ -18,9 +39,6 @@
       "**/backend/tests/**/*.test.js"
     ]
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.1",
