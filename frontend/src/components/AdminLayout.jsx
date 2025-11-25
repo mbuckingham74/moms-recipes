@@ -63,6 +63,14 @@ function AdminLayout({ children }) {
             <span className="sidebar-text">Review Pending</span>
           </NavLink>
 
+          <NavLink
+            to="/admin/user-submissions"
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+          >
+            <span className="sidebar-icon">📝</span>
+            <span className="sidebar-text">User Submissions</span>
+          </NavLink>
+
           <div className="sidebar-section-title">Management</div>
 
           <NavLink

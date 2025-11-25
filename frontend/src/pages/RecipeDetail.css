@@ -48,6 +48,43 @@
   display: flex;
   gap: 1rem;
   flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.btn-save {
+  background: white;
+  border: 2px solid #e91e63;
+  color: #e91e63;
+  transition: all 0.2s ease;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #fce4ec;
+}
+
+.btn-save.saved {
+  background: #e91e63;
+  color: white;
+}
+
+.btn-save.saved:hover:not(:disabled) {
+  background: #c2185b;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.save-prompt {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  border-color: var(--text-muted);
+}
+
+.save-prompt:hover {
+  color: var(--terracotta);
+  border-color: var(--terracotta);
 }
 
 .recipe-image-large {

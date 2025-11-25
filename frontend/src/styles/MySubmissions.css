@@ -1,0 +1,431 @@
+.my-submissions-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.header-content h1 {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: #7f8c8d;
+  font-size: 1rem;
+}
+
+.filters {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  background: white;
+  color: #7f8c8d;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  border-color: #3498db;
+  color: #3498db;
+}
+
+.filter-btn.active {
+  background: #3498db;
+  border-color: #3498db;
+  color: white;
+}
+
+.submissions-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  min-height: 400px;
+}
+
+.submissions-list-panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  padding: 1.5rem;
+}
+
+.submissions-count {
+  margin-bottom: 1rem;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.submissions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.submission-card {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  border: 2px solid transparent;
+}
+
+.submission-card:hover {
+  background: #e9ecef;
+}
+
+.submission-card.selected {
+  border-color: #3498db;
+  background: #f0f7ff;
+}
+
+.submission-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.submission-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+.submission-meta {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.delete-btn {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #c33;
+  border-radius: 4px;
+  background: white;
+  color: #c33;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+  background: #c33;
+  color: white;
+}
+
+.submission-detail-panel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  padding: 1.5rem;
+  position: sticky;
+  top: 2rem;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #2c3e50;
+}
+
+.detail-source,
+.detail-servings {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+.admin-notes {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #fff3cd;
+  border-radius: 8px;
+  border-left: 4px solid #e67700;
+}
+
+.admin-notes.rejected {
+  background: #f8d7da;
+  border-left-color: #c33;
+}
+
+.admin-notes h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #856404;
+}
+
+.admin-notes.rejected h4 {
+  color: #721c24;
+}
+
+.admin-notes p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.admin-notes .reviewer {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.detail-section {
+  margin: 1.5rem 0;
+}
+
+.detail-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+.ingredients-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.ingredients-list li {
+  margin-bottom: 0.25rem;
+  color: #495057;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag {
+  padding: 0.25rem 0.75rem;
+  background: #e9ecef;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: #495057;
+}
+
+.instructions-text {
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #495057;
+}
+
+.close-detail-btn {
+  margin-top: 1.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  color: #7f8c8d;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.close-detail-btn:hover {
+  background: #f8f9fa;
+  border-color: #3498db;
+  color: #3498db;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.badge-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.badge-approved {
+  background: #d4edda;
+  color: #155724;
+}
+
+.badge-rejected {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+}
+
+.empty-state p {
+  margin: 0 0 1.5rem 0;
+  color: #7f8c8d;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  margin-top: 1rem;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  color: #2c3e50;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #3498db;
+  color: #3498db;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  color: #7f8c8d;
+  font-size: 0.9rem;
+}
+
+.back-link-container {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.back-link {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.back-link:hover {
+  color: #2980b9;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #3498db;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #2980b9;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.2rem;
+  color: #7f8c8d;
+}
+
+.error-message {
+  background-color: #fee;
+  color: #c33;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .submissions-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .submission-detail-panel {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .my-submissions-container {
+    padding: 1rem;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
