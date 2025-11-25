@@ -23,43 +23,17 @@ jobs:
           ssh-keyscan -H tachyonfuture.com >> ~/.ssh/known_hosts
 
       - name: Deploy to server
-        env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          CSRF_SECRET: ${{ secrets.CSRF_SECRET }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ADMIN1_USERNAME: ${{ secrets.ADMIN1_USERNAME }}
-          ADMIN1_PASSWORD: ${{ secrets.ADMIN1_PASSWORD }}
-          ADMIN1_EMAIL: ${{ secrets.ADMIN1_EMAIL }}
-          ADMIN2_USERNAME: ${{ secrets.ADMIN2_USERNAME }}
-          ADMIN2_PASSWORD: ${{ secrets.ADMIN2_PASSWORD }}
-          ADMIN2_EMAIL: ${{ secrets.ADMIN2_EMAIL }}
         run: |
-          ssh michael@tachyonfuture.com << ENDSSH
+          ssh michael@tachyonfuture.com << 'ENDSSH'
             cd ~/moms-recipes || git clone https://github.com/mbuckingham74/moms-recipes.git ~/moms-recipes
             cd ~/moms-recipes
             git pull origin main
 
-            # Ensure .env exists with correct values
-            cat > .env << EOF
-          NODE_ENV=production
-          DB_HOST=meteo-mysql-prod
-          DB_PORT=3306
-          DB_USER=root
-          DB_PASSWORD=${DB_PASSWORD}
-          DB_NAME=moms_recipes
-          FRONTEND_URL=https://moms-recipes.tachyonfuture.com
-          PORT=3001
-          JWT_SECRET=${JWT_SECRET}
-          CSRF_SECRET=${CSRF_SECRET}
-          ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-          ADMIN1_USERNAME=${ADMIN1_USERNAME}
-          ADMIN1_PASSWORD=${ADMIN1_PASSWORD}
-          ADMIN1_EMAIL=${ADMIN1_EMAIL}
-          ADMIN2_USERNAME=${ADMIN2_USERNAME}
-          ADMIN2_PASSWORD=${ADMIN2_PASSWORD}
-          ADMIN2_EMAIL=${ADMIN2_EMAIL}
-          EOF
+            # Check that .env exists (managed on server, not overwritten by CI)
+            if [ ! -f .env ]; then
+              echo "❌ .env file not found! Please create it on the server."
+              exit 1
+            fi
 
             # Run deployment script
             chmod +x deploy.sh
