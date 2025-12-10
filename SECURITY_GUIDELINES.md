@@ -358,12 +358,24 @@ If unsure whether something should be an environment variable, ask:
 | Date | CVE | Severity | Component | Action |
 |------|-----|----------|-----------|--------|
 | 2025-12-09 | CVE-2025-55182 | Critical (CVSS 10.0) | React | Updated React 19.2.0 → 19.2.1 |
+| 2025-12-09 | N/A | High | Matomo | Changed protocol-relative URL to explicit HTTPS |
+| 2025-12-09 | N/A | Medium | AuthContext | Fixed transient error handling to prevent false logouts |
 
 ### CVE-2025-55182 (React2Shell)
 - **Affected**: React Server Components in versions 19.0, 19.1.0, 19.1.1, 19.2.0
 - **Impact**: Unauthenticated remote code execution via unsafe deserialization
 - **This app's exposure**: Low - uses client-side Vite/React, not React Server Components
 - **Action taken**: Updated to patched version as security best practice
+
+### Matomo HTTPS Enforcement
+- **Issue**: Protocol-relative URL (`//matomo...`) could allow downgrade attacks
+- **Fix**: Changed to explicit `https://matomo.tachyonfuture.com/`
+- **File**: `frontend/index.html`
+
+### AuthContext Transient Error Handling
+- **Issue**: Network blips or 500 errors on `/auth/me` caused false redirects to login
+- **Fix**: Added `authCheckFailed` state; ProtectedRoute shows retry option instead of redirecting
+- **Files**: `frontend/src/contexts/AuthContext.jsx`, `frontend/src/components/ProtectedRoute.jsx`
 
 ### Monitoring for New CVEs
 1. Run `npm audit` regularly to check for known vulnerabilities
@@ -373,4 +385,4 @@ If unsure whether something should be an environment variable, ask:
 
 ---
 
-*Last updated: December 2024 (CVE-2025-55182 React2Shell patch)*
+*Last updated: December 2025 (Frontend security improvements)*
