@@ -32,5 +32,5 @@ Comprehensive documentation for the Mom's Recipes application.
 
 ---
 
-**Live Application**: https://moms-recipes.tachyonfuture.com
+**Live Application**: https://mom-recipes.tachyonfuture.com
 **Repository**: https://github.com/mbuckingham74/moms-recipes

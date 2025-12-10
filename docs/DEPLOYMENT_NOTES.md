@@ -5,8 +5,8 @@
 ### Deployment Summary
 
 Successfully deployed Mom's Recipes admin panel (Phase 1) to production:
-- **Frontend**: https://moms-recipes.tachyonfuture.com
-- **Backend API**: https://api.moms-recipes.tachyonfuture.com
+- **Frontend**: https://mom-recipes.tachyonfuture.com
+- **Backend API**: https://api.mom-recipes.tachyonfuture.com
 - **Database**: MySQL 8 (meteo-mysql-prod container)
 
 ### Issues Encountered & Resolutions
@@ -84,12 +84,12 @@ that is not equal to the supplied origin
 
 **Root Cause**: `FRONTEND_URL` in production `.env` was set to `https://recipes.tachyonfuture.com` (missing "moms-" prefix)
 
-**Correct Domain**: `https://moms-recipes.tachyonfuture.com`
+**Correct Domain**: `https://mom-recipes.tachyonfuture.com`
 
 **Fix**: Updated production `.env` file and restarted Docker containers:
 ```bash
 ssh user@server "cd ~/moms-recipes && \
-  sed -i 's|https://recipes.tachyonfuture.com|https://moms-recipes.tachyonfuture.com|g' .env && \
+  sed -i 's|https://recipes.tachyonfuture.com|https://mom-recipes.tachyonfuture.com|g' .env && \
   docker compose down && docker compose up -d"
 ```
 
@@ -108,7 +108,7 @@ DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=[MySQL root password]
 DB_NAME=moms_recipes
-FRONTEND_URL=https://moms-recipes.tachyonfuture.com
+FRONTEND_URL=https://mom-recipes.tachyonfuture.com
 PORT=3001
 
 # Authentication
@@ -161,13 +161,13 @@ ssh michael@tachyonfuture.com \
 
 After deployment, verify:
 
-1. **Backend Health**: `curl https://api.moms-recipes.tachyonfuture.com/health`
+1. **Backend Health**: `curl https://api.mom-recipes.tachyonfuture.com/health`
    - Should return: `{"status":"ok","message":"Recipe API is running"}`
 
-2. **Frontend Access**: Visit https://moms-recipes.tachyonfuture.com
+2. **Frontend Access**: Visit https://mom-recipes.tachyonfuture.com
    - Should load the homepage with recipe listing
 
-3. **Login**: Visit https://moms-recipes.tachyonfuture.com/login
+3. **Login**: Visit https://mom-recipes.tachyonfuture.com/login
    - Should successfully authenticate with admin credentials
    - Should redirect to `/admin` dashboard
 

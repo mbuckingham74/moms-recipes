@@ -564,7 +564,7 @@ Delete `backend/data/recipes.db` and restart server (auto-recreates empty databa
 
 ## Deployment
 
-**Production URL:** https://moms-recipes.tachyonfuture.com
+**Production URL:** https://mom-recipes.tachyonfuture.com
 
 **Deployment Method:**
 ```bash

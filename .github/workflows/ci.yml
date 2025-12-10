@@ -62,4 +62,4 @@ jobs:
         working-directory: frontend
         run: npm run build
         env:
-          VITE_API_BASE_URL: https://api.moms-recipes.tachyonfuture.com/api
+          VITE_API_BASE_URL: https://api.mom-recipes.tachyonfuture.com/api

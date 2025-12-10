@@ -152,8 +152,8 @@ docker compose logs -f
 
 ### Configure NPM
 
-1. **Backend API**: `api.moms-recipes.tachyonfuture.com` → `moms-recipes-backend:3001`
-2. **Frontend**: `moms-recipes.tachyonfuture.com` → `moms-recipes-frontend:80`
+1. **Backend API**: `api.mom-recipes.tachyonfuture.com` → `moms-recipes-backend:3001`
+2. **Frontend**: `mom-recipes.tachyonfuture.com` → `moms-recipes-frontend:80`
 
 Both with SSL certificates from Let's Encrypt.
 
@@ -174,7 +174,7 @@ DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_mysql_password
 DB_NAME=moms_recipes
-FRONTEND_URL=https://moms-recipes.tachyonfuture.com
+FRONTEND_URL=https://mom-recipes.tachyonfuture.com
 PORT=3001
 ```
 
@@ -260,8 +260,8 @@ docker compose up -d --build
 
 After deployment, verify:
 
-- [ ] Backend health check: `https://api.moms-recipes.tachyonfuture.com/health`
-- [ ] Frontend loads: `https://moms-recipes.tachyonfuture.com`
+- [ ] Backend health check: `https://api.mom-recipes.tachyonfuture.com/health`
+- [ ] Frontend loads: `https://mom-recipes.tachyonfuture.com`
 - [ ] Can view recipes list
 - [ ] Can view individual recipe
 - [ ] Can create new recipe
@@ -364,8 +364,8 @@ See [DOCKER_DEPLOYMENT.md#troubleshooting](DOCKER_DEPLOYMENT.md#troubleshooting)
 ## Deployment Summary
 
 **Deployed URLs:**
-- Frontend: https://moms-recipes.tachyonfuture.com
-- Backend API: https://api.moms-recipes.tachyonfuture.com
+- Frontend: https://mom-recipes.tachyonfuture.com
+- Backend API: https://api.mom-recipes.tachyonfuture.com
 
 **Infrastructure:**
 - Frontend: Nginx serving React SPA

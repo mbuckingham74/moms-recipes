@@ -12,7 +12,7 @@
 
 A full-stack recipe management system powered by AI. Import recipes from PDFs, photos, or URLs with automatic parsing. Get intelligent serving size and calorie estimates. Built with React 19, Node.js/Express, MySQL 8, and multi-provider AI support (Claude, GPT-4, Gemini).
 
-**🌐 Live Demo:** [https://moms-recipes.tachyonfuture.com](https://moms-recipes.tachyonfuture.com)
+**🌐 Live Demo:** [https://mom-recipes.tachyonfuture.com](https://mom-recipes.tachyonfuture.com)
 
 ## AI-Powered Features
 
@@ -43,7 +43,7 @@ AI analyzes your recipe's ingredients and portions to estimate calories per serv
 ✅ **Backend API** - Complete and tested (80% code coverage)
 ✅ **Frontend** - React application complete with warm kitchen design
 ✅ **Admin Panel** - Authentication, dashboard, and PDF upload backend ready
-✅ **Production Deployment** - Live at https://moms-recipes.tachyonfuture.com
+✅ **Production Deployment** - Live at https://mom-recipes.tachyonfuture.com
 ⬜ **Recipe Import** - 0/370 recipes imported (PDF upload UI coming in Phase 2)
 
 ## Features

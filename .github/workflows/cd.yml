@@ -43,5 +43,5 @@ jobs:
       - name: Check deployment status
         run: |
           sleep 10
-          curl -f https://moms-recipes.tachyonfuture.com || echo "⚠️ Frontend check failed"
-          curl -f https://api.moms-recipes.tachyonfuture.com/health || echo "⚠️ Backend check failed"
+          curl -f https://mom-recipes.tachyonfuture.com || echo "⚠️ Frontend check failed"
+          curl -f https://api.mom-recipes.tachyonfuture.com/health || echo "⚠️ Backend check failed"

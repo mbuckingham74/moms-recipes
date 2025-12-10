@@ -41,7 +41,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: https://api.moms-recipes.tachyonfuture.com/api
+        VITE_API_BASE_URL: https://api.mom-recipes.tachyonfuture.com/api
     container_name: moms-recipes-frontend
     restart: unless-stopped
     networks:

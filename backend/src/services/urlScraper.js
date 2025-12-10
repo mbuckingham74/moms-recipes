@@ -287,7 +287,7 @@ class UrlScraper {
 
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; MomsRecipesBot/1.0; +https://moms-recipes.tachyonfuture.com)',
+        'User-Agent': 'Mozilla/5.0 (compatible; MomsRecipesBot/1.0; +https://mom-recipes.tachyonfuture.com)',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
       },

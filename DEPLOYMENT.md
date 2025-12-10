@@ -29,7 +29,7 @@ DB_PASSWORD=<mysql_password>
 DB_NAME=moms_recipes
 
 # Application
-FRONTEND_URL=https://moms-recipes.tachyonfuture.com
+FRONTEND_URL=https://mom-recipes.tachyonfuture.com
 PORT=3001
 
 # Security & APIs
