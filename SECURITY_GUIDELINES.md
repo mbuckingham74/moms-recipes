@@ -351,4 +351,26 @@ If unsure whether something should be an environment variable, ask:
 
 ---
 
-*Last updated: November 2024 (URL Import SSRF protection added)*
+---
+
+## 🛠️ Security Patch History
+
+| Date | CVE | Severity | Component | Action |
+|------|-----|----------|-----------|--------|
+| 2025-12-09 | CVE-2025-55182 | Critical (CVSS 10.0) | React | Updated React 19.2.0 → 19.2.1 |
+
+### CVE-2025-55182 (React2Shell)
+- **Affected**: React Server Components in versions 19.0, 19.1.0, 19.1.1, 19.2.0
+- **Impact**: Unauthenticated remote code execution via unsafe deserialization
+- **This app's exposure**: Low - uses client-side Vite/React, not React Server Components
+- **Action taken**: Updated to patched version as security best practice
+
+### Monitoring for New CVEs
+1. Run `npm audit` regularly to check for known vulnerabilities
+2. Subscribe to [Node.js security releases](https://nodejs.org/en/blog/vulnerability/)
+3. Monitor [React security advisories](https://react.dev/blog)
+4. Check [Express.js security releases](https://expressjs.com/en/advanced/security-updates.html)
+
+---
+
+*Last updated: December 2024 (CVE-2025-55182 React2Shell patch)*
