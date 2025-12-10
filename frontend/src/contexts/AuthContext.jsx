@@ -15,9 +15,11 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authCheckFailed, setAuthCheckFailed] = useState(false);
 
   const checkAuth = useCallback(async () => {
     try {
+      setAuthCheckFailed(false);
       const response = await api.get('/auth/me');
       if (response.data.success && response.data.user) {
         setUser(response.data.user);
@@ -29,8 +31,11 @@ export const AuthProvider = ({ children }) => {
       // Transient network/500 errors should not log user out
       if (error.response?.status === 401) {
         setUser(null);
+      } else {
+        // On transient errors (network blip, 500), mark as failed but don't clear user
+        // This prevents redirecting to login on temporary failures
+        setAuthCheckFailed(true);
       }
-      // On other errors, leave user as null until page refresh
     } finally {
       setLoading(false);
     }
@@ -87,6 +92,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
+    authCheckFailed,
     login,
     logout,
     isAdmin,

@@ -1,10 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import '../../styles/SubmitRecipe.css';
 
 function SubmitRecipe() {
   const navigate = useNavigate();
+  const redirectTimerRef = useRef(null);
+
+  // Cleanup redirect timer on unmount to prevent stray navigation
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+      }
+    };
+  }, []);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -108,7 +118,7 @@ function SubmitRecipe() {
       setSuccess(true);
 
       // Redirect to submissions page after 2 seconds
-      setTimeout(() => {
+      redirectTimerRef.current = setTimeout(() => {
         navigate('/my-submissions');
       }, 2000);
     } catch (err) {
